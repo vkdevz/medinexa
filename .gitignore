@@ -8,3 +8,6 @@ __pycache__/
 dist/
 build/
 *.egg-info/
+
+# Ignore user-uploaded or generated CSV data in the analysis data folder
+rfm_customer_analytics/data/*.csv
