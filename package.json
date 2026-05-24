@@ -1,0 +1,11 @@
+{
+  "name": "rfm_project_01",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "vercel-build": "python3 scripts/prepare_public.py"
+  },
+  "engines": {
+    "node": "16.x"
+  }
+}
