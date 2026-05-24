@@ -252,7 +252,25 @@ class GlobalVisualizations:
             'Recency': 'mean'
         }).reset_index()
         segment_summary.columns = ['Segment', 'Count', 'Avg_RFM_Score', 'Avg_Monetary', 'Avg_Recency']
-        
+        # Ensure consistent segment order and a 5-color palette
+        segments_order = ['Champions', 'Potential Loyalists', 'At-Risk', 'Lost', 'Other']
+        segment_summary = (
+            segment_summary.set_index('Segment')
+            .reindex(segments_order)
+            .fillna(0)
+            .reset_index()
+        )
+
+        # Define a clear 5-color palette and map it to segments
+        color_map = {
+            'Champions': '#00CC96',            # strong green
+            'Potential Loyalists': '#00BF7D',  # green
+            'Other': '#FFA630',                # orange
+            'At-Risk': '#EF553B',              # red/orange
+            'Lost': '#636EFA'                  # purple/neutral
+        }
+        colors = [color_map.get(s, '#888888') for s in segment_summary['Segment']]
+
         # 1. Pie chart - Segment distribution
         fig.add_trace(
             go.Pie(
@@ -260,45 +278,46 @@ class GlobalVisualizations:
                 values=segment_summary['Count'],
                 name='Customer Count',
                 textposition='inside',
-                textinfo='label+percent'
+                textinfo='label+percent',
+                marker=dict(colors=colors)
             ),
             row=1, col=1
         )
-        
+
         # 2. Bar chart - Average RFM Scores
         fig.add_trace(
             go.Bar(
                 x=segment_summary['Segment'],
                 y=segment_summary['Avg_RFM_Score'],
                 name='Avg RFM Score',
-                marker_color=['#00CC96', '#00BF7D', '#FFA630', '#EF553B'],
+                marker_color=colors,
                 text=segment_summary['Avg_RFM_Score'].round(2),
                 textposition='outside'
             ),
             row=1, col=2
         )
-        
+
         # 3. Bar chart - Average Monetary Value
         fig.add_trace(
             go.Bar(
                 x=segment_summary['Segment'],
                 y=segment_summary['Avg_Monetary'],
                 name='Avg Monetary Value',
-                marker_color=['#00CC96', '#00BF7D', '#FFA630', '#EF553B'],
-                text='£' + segment_summary['Avg_Monetary'].round(2).astype(str),
+                marker_color=colors,
+                text=['£' + f"{v:.2f}" for v in segment_summary['Avg_Monetary']],
                 textposition='outside'
             ),
             row=2, col=1
         )
-        
+
         # 4. Bar chart - Average Recency
         fig.add_trace(
             go.Bar(
                 x=segment_summary['Segment'],
                 y=segment_summary['Avg_Recency'],
                 name='Avg Recency (days)',
-                marker_color=['#00CC96', '#00BF7D', '#FFA630', '#EF553B'],
-                text=segment_summary['Avg_Recency'].round(0).astype(int),
+                marker_color=colors,
+                text=segment_summary['Avg_Recency'].round(0).astype(int).astype(str),
                 textposition='outside'
             ),
             row=2, col=2
