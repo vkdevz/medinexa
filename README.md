@@ -1,70 +1,29 @@
-# Deep-Dive Customer Analytics: Driving Retention through RFM & Cohort Analysis
+# RFM Customer Analytics — Deployment
 
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![Pandas](https://img.shields.io/badge/pandas-1.3+-green.svg)
-![NumPy](https://img.shields.io/badge/NumPy-1.20+-brightgreen.svg)
-![Seaborn](https://img.shields.io/badge/Seaborn-0.11+-red.svg)
-![Plotly](https://img.shields.io/badge/Plotly-5.0+-purple.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
+This repository contains the RFM analysis pipeline and generated visualizations.
 
-## 🎯 Problem Statement
+Quick steps to host the generated reports on Vercel (static site):
 
-**Challenge:** E-commerce companies lose 20-40% of their customer base annually due to poor retention strategies and lack of actionable customer insights.
-
-**Root Cause:** Most businesses have transaction data but lack a systematic approach to:
-- Segment customers by value and engagement
-- Identify at-risk customers before churn occurs
-- Design targeted marketing interventions with measurable ROI
-- Allocate marketing budgets efficiently across customer segments
-
-**Solution:** This project demonstrates an **enterprise-grade RFM (Recency, Frequency, Monetary) analytics pipeline** that:
-✓ Segments 20,000+ customers into 4 strategic tiers  
-✓ Quantifies customer lifetime value and churn risk  
-✓ Designs segment-specific marketing strategies with projected ROI (50-350%)  
-✓ Provides geographic insights for market-level decision making  
-✓ Delivers actionable recommendations for email campaigns, discount strategies, and VIP programs
-
----
-
-## 📊 Project Overview
-
-This is a **complete data science portfolio project** demonstrating the full lifecycle of a data strategy initiative at a global e-commerce company (Shopify / Amazon-scale).
-
-### What You'll Learn
-- **Data Engineering:** Generate realistic synthetic data with quality issues (missing values, duplicates, outliers)
-- **ETL & Data Quality:** Professional cleaning pipeline with logging and validation
-- **Advanced Analytics:** RFM segmentation using quintile-based scoring (1-5)
-- **Business Intelligence:** Convert metrics into actionable customer segments
-- **Financial Modeling:** Calculate ROI by segment with realistic marketing assumptions
-- **Visualization:** Production-ready Seaborn heatmaps and Plotly interactive maps
-- **Documentation:** Industry-standard project structure and README standards
-
----
+1. Prepare the `public/` folder locally (copies generated HTML/PNG/TXT/CSV files):
 
 ## 📁 Project Structure
 
 ```
-deep-dive-customer-analytics/
-│
-├── 01_synthetic_data_generation.py      # Generate 20K rows with realistic noise
-├── 02_etl_cleaning_pipeline.py          # Professional data cleaning with validation
-├── 03_rfm_analysis.py                   # RFM engine with quintile segmentation
-├── 04_marketing_strategy_roi.py         # Segment-specific strategies + ROI calc
-├── 05_global_visualizations.py          # Seaborn heatmaps & Plotly maps
-│
-├── data/
-│   ├── synthetic_ecommerce_data.csv     # Raw synthetic data (20K rows, 6 columns)
-│   ├── cleaned_ecommerce_data.csv       # Cleaned data (post-ETL)
-│   └── rfm_segmentation.csv             # RFM scores + customer segments
-│
-├── outputs/
-│   ├── rfm_correlation_heatmap.png      # Seaborn correlation matrix
-│   ├── segment_by_country_heatmap.png   # Geographic segment distribution
-│   ├── interactive_champions_map.html   # Plotly choropleth map (interactive)
-│   ├── segment_metrics_dashboard.html   # Plotly dashboard with 4 KPI charts
-│   └── marketing_strategy_roi.txt       # Executive summary + tactics
-│
-└── README.md                            # This file
+rfm_project_01/
+├── rfm_customer_analytics/
+│   ├── 01_synthetic_data_generation.py
+│   ├── 02_etl_cleaning_pipeline.py
+│   ├── 03_rfm_analysis.py
+│   ├── 04_marketing_strategy_roi.py
+│   ├── 05_global_visualizations.py
+│   ├── requirements.txt
+│   └── data/                              # generated CSVs and visual artifacts
+├── scripts/
+│   └── prepare_public.py                  # copy artifacts into public/
+├── public/                                # prepared static site for Vercel
+├── requirements.txt                       # root requirements (mirrors package needs)
+├── vercel.json                            # basic Vercel config for static site
+└── README.md
 ```
 
 ---
@@ -83,17 +42,19 @@ scikit-learn==0.24+  # (Optional) For advanced segmentation
 
 ### Installation
 ```bash
-# Clone repository
-git clone https://github.com/yourusername/deep-dive-customer-analytics.git
-cd deep-dive-customer-analytics
+# Clone repository (replace <your-username> if forking)
+git clone https://github.com/vkdevz/rfm_project_01.git
+cd rfm_project_01
 
-# Install dependencies
+# Create & activate virtualenv, then install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 # Or install manually
 pip install pandas numpy matplotlib seaborn plotly
 
-# Python version: 3.8+
+# Python: 3.8+ recommended
 ```
 
 ### Key Features Demonstrated
@@ -110,25 +71,30 @@ pip install pandas numpy matplotlib seaborn plotly
 
 ### Run the Full Pipeline (5 minutes)
 ```bash
+# From repository root (rfm_project_01)
 # Step 1: Generate synthetic data with noise
-python 01_synthetic_data_generation.py
-# Output: synthetic_ecommerce_data.csv (20,000 rows)
+python3 rfm_customer_analytics/01_synthetic_data_generation.py
+# Output: rfm_customer_analytics/data/synthetic_ecommerce_data.csv (20,000 rows)
 
 # Step 2: Clean data with professional ETL
-python 02_etl_cleaning_pipeline.py
-# Output: cleaned_ecommerce_data.csv (~19,500 rows after cleaning)
+python3 rfm_customer_analytics/02_etl_cleaning_pipeline.py
+# Output: rfm_customer_analytics/data/cleaned_ecommerce_data.csv (~19,500 rows after cleaning)
 
 # Step 3: Execute RFM analysis & segmentation
-python 03_rfm_analysis.py
-# Output: rfm_segmentation.csv (customer segments + RFM scores)
+python3 rfm_customer_analytics/03_rfm_analysis.py
+# Output: rfm_customer_analytics/data/rfm_segmentation.csv (customer segments + RFM scores)
 
 # Step 4: Generate marketing strategies & ROI projections
-python 04_marketing_strategy_roi.py
-# Output: marketing_strategy_roi.txt (executive summary)
+python3 rfm_customer_analytics/04_marketing_strategy_roi.py
+# Output: rfm_customer_analytics/data/marketing_strategy_roi.txt (executive summary)
 
 # Step 5: Create visualizations
-python 05_global_visualizations.py
-# Output: 4 professional visualizations (PNG + interactive HTML)
+python3 rfm_customer_analytics/05_global_visualizations.py
+# Output: rfm_customer_analytics/data/*.png and *.html
+
+# Optional: prepare static site for Vercel
+python3 scripts/prepare_public.py
+# This copies artifacts into public/ for static hosting
 ```
 
 ### Expected Results
@@ -203,31 +169,31 @@ Correlation between Frequency & Monetary: r = 0.87 (strong positive)
 
 **Cleaning Steps:**
 1. **Missing Value Handling**
-   - Mode imputation for Product_Category (most common category)
-   - Row removal for missing Country (critical for geographic analysis)
-   - Result: Reduced missing values from 3% to <0.1%
+	- Mode imputation for Product_Category (most common category)
+	- Row removal for missing Country (critical for geographic analysis)
+	- Result: Reduced missing values from 3% to <0.1%
 
 2. **Duplicate Handling**
-   - Removed exact duplicates
-   - Enforced unique Order_IDs (business requirement)
-   - Result: ~500 rows removed (~2.5% of dataset)
+	- Removed exact duplicates
+	- Enforced unique Order_IDs (business requirement)
+	- Result: ~500 rows removed (~2.5% of dataset)
 
 3. **Data Type Optimization**
-   - Converted to appropriate types: string, datetime64, category
-   - Categorical data reduces memory by 60%+
-   - Result: Dataset size: 50MB → 15MB
+	- Converted to appropriate types: string, datetime64, category
+	- Categorical data reduces memory by 60%+
+	- Result: Dataset size: 50MB → 15MB
 
 4. **Outlier Analysis**
-   - IQR method applied to Transaction_Amount
-   - High-value transactions retained (legitimate business data)
-   - Invalid transactions (£ ≤ 0) removed
-   - Result: ~19,500 clean rows ready for analysis
+	- IQR method applied to Transaction_Amount
+	- High-value transactions retained (legitimate business data)
+	- Invalid transactions (£ ≤ 0) removed
+	- Result: ~19,500 clean rows ready for analysis
 
 5. **Validation**
-   - No nulls in critical columns
-   - Date range validation (24 months confirmed)
-   - Country validation (only UK, Germany, France, USA)
-   - Result: ✓ All validations passed
+	- No nulls in critical columns
+	- Date range validation (24 months confirmed)
+	- Country validation (only UK, Germany, France, USA)
+	- Result: ✓ All validations passed
 
 **Output:** Clean, analysis-ready dataset with full audit trail
 
@@ -393,57 +359,16 @@ This project teaches:
 
 ## 📊 Key Metrics Dashboard
 
-```
-SEGMENT PERFORMANCE MATRIX
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Segment              Count    Avg LTV    Email Open   Conversion   Recommended Budget
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Champions            2,000    £500       45%          8%           £50K (30%)
-Potential Loyalists  4,500    £250       35%          5%           £60K (36%)
-At-Risk              4,000    £120       20%          2%           £40K (24%)
-Lost                 2,500    £30        10%          1%           £15K (10%)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TOTAL               13,000    £218       28%          4%           £165K (100%)
-```
+Open `public/segment_metrics_dashboard.html` after running `python3 scripts/prepare_public.py` to view the interactive dashboard and segment performance tables. The `public/` folder is prepared for static hosting (Vercel) and contains the interactive HTML dashboards and image artifacts.
 
----
+| Segment | Customers | Avg LTV | Email Open Rate | Conversion Rate | Budget Allocation |
+|--------:|----------:|--------:|----------------:|----------------:|------------------:|
+| Champions | 2,000 | £500 | 45% | 8% | £50K (30%) |
+| Potential Loyalists | 4,500 | £250 | 35% | 5% | £60K (36%) |
+| At-Risk | 4,000 | £120 | 20% | 2% | £40K (24%) |
+| Lost | 2,500 | £30 | 10% | 1% | £15K (10%) |
 
-## 🔧 Advanced Features
-
-### Optional Enhancements
-```python
-# 1. Predictive Churn Modeling
-from sklearn.ensemble import RandomForestClassifier
-# Predict which At-Risk customers will churn
-
-# 2. Propensity Scoring
-# Calculate likelihood each segment responds to discount
-
-# 3. Cohort Analysis
-# Track customer cohorts over time (2022 vs 2023)
-
-# 4. LTV Prediction Models
-# Forecast future customer value with time-series
-
-# 5. Incrementality Testing
-# A/B test campaigns to validate ROI assumptions
-```
-
----
-
-## 📚 Resources & References
-
-### RFM Segmentation
-- Gupta, S., & Zeithaml, V. (2006). Customer Metrics and Their Impact on Financial Performance
-- Verhoef, P. C. (2003). Understanding the effect of customer relationship management efforts on customer retention
-
-### E-Commerce Analytics
-- Chaffey, D., et al. (2019). Digital Marketing: Strategy, Implementation and Practice
-- Godin, S. (1999). Permission Marketing: Turning Strangers into Friends
-
-### Python Best Practices
-- [PEP 8 - Style Guide](https://www.python.org/dev/peps/pep-0008/)
-- [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+This table summarizes expected segment counts, average lifetime value, email engagement, and suggested budget allocation. Run the full pipeline and open the `public/segment_metrics_dashboard.html` file to explore interactive charts and drill-downs.
 
 ---
 
@@ -489,14 +414,10 @@ This project demonstrates the **complete data science workflow** at enterprise s
 ## 🚀 Get Started Now
 
 ```bash
-git clone https://github.com/yourusername/deep-dive-customer-analytics.git
-cd deep-dive-customer-analytics
+git clone https://github.com/vkdevz/rfm_project_01.git
+cd rfm_project_01
 pip install -r requirements.txt
-python 01_synthetic_data_generation.py  # Start here!
+python3 rfm_customer_analytics/01_synthetic_data_generation.py  # Start here!
 ```
 
 **Questions?** Open an issue or reach out to the maintainer.
-
----
-
-*"Data-driven retention beats customer acquisition by 3x. Make retention your competitive advantage."*
