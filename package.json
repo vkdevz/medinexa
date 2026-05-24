@@ -6,6 +6,6 @@
     "vercel-build": "python3 scripts/prepare_public.py"
   },
   "engines": {
-    "node": "16.x"
+    "node": "22.x"
   }
 }
