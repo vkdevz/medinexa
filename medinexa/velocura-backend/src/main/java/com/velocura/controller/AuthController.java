@@ -60,7 +60,24 @@ public class AuthController {
     @PostMapping("/register")
     @Transactional
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
-        if (userRepository.existsByEmail(registerRequest.getEmail())) {
+        // Anti-Spam: Block Admin role self-registration
+        if (registerRequest.getRole() == Role.ADMIN) {
+            return ResponseEntity.badRequest().body("Error: Administrative accounts cannot be created via public registration.");
+        }
+
+        // Anti-Spam: Block disposable / temporary email domains
+        String email = registerRequest.getEmail() != null ? registerRequest.getEmail().toLowerCase().trim() : "";
+        List<String> spamDomains = List.of(
+            "mailinator.com", "tempmail.com", "dispostable.com", "10minutemail.com", 
+            "guerrillamail.com", "trashmail.com", "yopmail.com", "sharklasers.com", 
+            "getnada.com", "throwawaymail.com", "temp-mail.org", "fakeinbox.com"
+        );
+        boolean isSpamDomain = spamDomains.stream().anyMatch(email::endsWith);
+        if (isSpamDomain) {
+            return ResponseEntity.badRequest().body("Error: Disposable or temporary email providers are not permitted. Please use a valid email address.");
+        }
+
+        if (userRepository.existsByEmail(email)) {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }
 
