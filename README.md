@@ -1,82 +1,153 @@
-# 🏥 VeloCura (formerly MediNexa) — AI-Powered Digital Clinic Platform
+# 🏥 VeloCura (MediNexa) - AI Digital Healthcare Platform
 
-VeloCura is a modern, premium digital clinic ecosystem built for startups. It bridges automated clinical intelligence with immediate, real-time doctor interventions via WebRTC and secure electronic health passport timeline integrations.
+[![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://jdk.java.net/21/)
+[![Spring Boot 3](https://img.shields.io/badge/Spring%20Boot-3.3.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![React 19](https://img.shields.io/badge/React-19.0-blue.svg)](https://react.dev/)
+[![Vite 8](https://img.shields.io/badge/Vite-8.2-purple.svg)](https://vitejs.dev/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind-4.3-cyan.svg)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
-
-## 🌟 Core Features
-
-### 1. 🤖 Conversational AI Symptom Triage Advisor
-*   **Public Landing Page Chatbot**: Allows anonymous guest visitors to perform up to **3 symptom checks** for free.
-*   **Conversion Barrier**: Exceeding the free check limit renders a lock screen modal directing guests to sign up or log in.
-*   **Structured Medical Response**: Evaluates patient symptoms and categorizes severity (Mild, Moderate, Critical). Recommends home care remedies, safe OTC salt guidelines, and suggests direct communication channels.
-
-### 📜 2. Unified Patient Health Passport Timeline
-*   **Allergies Ledger**: Patients manage active salt, drug, and food allergies (flagged as red warning badges).
-*   **Chronological Health Timeline**: Patients log surgeries, fractures, chronic illnesses, and medical milestones.
-*   **Clinic Cohesion**: Automatically merges user-logged timeline items with official digital diagnoses and prescriptions issued by consulting doctors.
-*   **Doctor Panel Inspection**: When a doctor opens a consultation, the window splits to show the patient's complete Health Passport in real-time, preventing adverse drug-allergy interactions.
-
-### 📹 3. Peer-to-Peer Telehealth Rooms
-*   **Instant WebRTC Rooms**: One-click voice or video call sessions launched directly from patient and doctor dashboards (using secure Jitsi Meet integrations).
-*   **Dynamic Room Security**: Room tokens are created on-the-fly and bind to active session IDs.
-
-### 📊 4. Vitals Logger & Metrics Trends
-*   **Continuous Monitoring**: Logs blood pressure (systolic/diastolic), heart rate (BPM), and blood sugar levels (mg/dL).
-*   **Trend Flags**: Color-coded threshold badges indicate normal, elevated, or critical vitals.
+**VeloCura** (formerly MediNexa) is a modern, full-stack digital healthcare ecosystem combining **AI-driven symptom triage**, **telehealth video consultations**, **stateless JWT security**, **vitals tracking**, and **electronic health passport management**.
 
 ---
 
-## 🛠️ Tech Stack
+## 📐 System Architecture & Directory Structure
 
-### Backend
-*   **Language & Framework**: Java 21 / Spring Boot 3.3
-*   **Security**: Stateless JSON Web Tokens (JWT) + Spring Security
-*   **Database**: H2 Database Engine (with JPA/Hibernate ORM mappings)
-*   **Testing**: Mockito unit testing suite
-
-### Frontend
-*   **Language & Framework**: React / Vite / Javascript ES6
-*   **Styles**: Vanilla CSS & TailwindCSS
-*   **Networking**: Axios interceptors with local session tracking
+```text
+medinexa/
+├── velocura-backend/             # Spring Boot 3 REST API Backend (Java 21)
+│   ├── src/main/java/com/velocura/
+│   │   ├── config/              # DatabaseSeeder, Security, Audit Config
+│   │   ├── controller/          # Auth, Patient, Doctor, Admin REST Endpoints
+│   │   ├── dto/                 # Request & Response Data Transfer Objects
+│   │   ├── model/               # JPA Entities (User, Patient, Doctor, Appointment, Vitals, Passport)
+│   │   ├── repository/          # Spring Data JPA Repositories
+│   │   ├── security/            # JWT Filter, JwtUtils, CustomUserDetailsService
+│   │   └── service/             # GeminiAiService, PatientService, DoctorService, AdminService
+│   ├── src/main/resources/
+│   │   └── application.yml      # System & Database Configuration Properties
+│   ├── Dockerfile               # Multi-stage Java 21 Alpine Container Build
+│   └── pom.xml                  # Maven Project Dependencies
+│
+├── velocura-frontend/            # React + Vite Frontend SPA
+│   ├── src/
+│   │   ├── assets/              # Branding & SVG Resources
+│   │   ├── components/          # TelehealthRoom, ProtectedRoute
+│   │   ├── context/             # AuthContext (JWT State Management)
+│   │   ├── pages/               # LandingPage, Login, Register, PatientDashboard, DoctorDashboard, AdminDashboard
+│   │   ├── api.js               # Axios Client with Automatic JWT Interceptors
+│   │   ├── App.jsx              # Application Router & Public Triage Interface
+│   │   └── index.css            # Design System & Tailwind Utility Directives
+│   ├── Dockerfile               # Multi-stage Nginx Static Web Serving Build
+│   ├── package.json             # Frontend Dependencies
+│   └── vite.config.js           # Vite Server & Proxy Configuration
+│
+├── docker-compose.yml           # Full Stack Containerization (MySQL 8.0, Backend, Frontend)
+├── run-backend.py               # Launcher script for Spring Boot Backend
+└── run-frontend.py              # Launcher script for Vite Frontend
+```
 
 ---
 
-## 🚀 Installation & Local Setup
+## ✨ Core Product Capabilities
 
-### Prerequisite Checklist
-*   **Java Development Kit (JDK 21+)**
-*   **Node.js (v20+ or v22.12+)**
+### 🧠 1. AI Symptom Triage Engine
+- **Multi-System Clinical NLP**: Analyzes symptoms across 12 clinical specialties (Cardiology, Neurology, Pulmonology, Gastroenterology, Urology/Nephrology, Orthopedics, Dermatology, ENT, Psychiatry, Pediatrics, General Medicine).
+- **Severity Classification**: Tiered clinical risk levels (`Mild`, `Moderate`, `Critical`).
+- **Differential Diagnoses**: Ranked clinical condition possibilities.
+- **Immediate Precautions & Home Remedies**: Safety measures and evidence-based home remedies.
+- **Suggested OTC Salts**: Common salt guidelines with safety warnings.
+- **Google Gemini 2.0 Integration**: Live API support via `gemini-2.0-flash` with a built-in clinical AI fallback engine.
 
-### 1. Clone & Project Initialization
+### 🔐 2. Security & Access Control
+- **Stateless JWT Authentication**: Secure 24-hour token issuance with role-based claim authorization.
+- **Role-Based Portals**: Scoped REST API endpoints for `PATIENT`, `DOCTOR`, and `ADMIN`.
+
+### 🩺 3. Patient Portal
+- **Health Passport**: Medical timeline logging, allergy tracking, and clinical history export.
+- **Vitals Logger**: Daily blood pressure (systolic/diastolic), heart rate, and blood sugar tracking.
+- **Consultation Scheduling**: Real-time doctor selection with conflict-free slot booking.
+- **WebRTC Video Rooms**: Peer-to-peer virtual consultation rooms.
+- **E-Prescriptions**: View and download digital prescriptions issued by verified doctors.
+
+### 👨‍⚕️ 4. Doctor Portal
+- **Patient Queue**: View upcoming scheduled consultations.
+- **E-Rx Writer**: Issue digital prescriptions with dosage, frequency, and instructions.
+- **Vitals Review**: Inspect historical vitals charts before entering video calls.
+
+### 🛡️ 5. Admin Console
+- **Provider Verification**: Review and approve doctor license credentials.
+- **Platform Analytics**: Total users, appointments, verified clinicians, and system metrics.
+
+---
+
+## 🛠️ Environment Configuration
+
+Set these environment variables in your environment or in `velocura-backend/src/main/resources/application.yml`:
+
+| Environment Variable | Default Value | Description |
+|----------------------|---------------|-------------|
+| `GEMINI_API_KEY` | *(Built-in AI Fallback)* | Google Gemini AI Studio API key (`AIzaSy...`) |
+| `JWT_SECRET` | `404E6352...` | HMAC-SHA512 Secret Key for JWT signature verification |
+| `JWT_EXPIRATION_MS` | `86400000` (24 Hours) | Token validity duration in milliseconds |
+| `DB_URL` | `jdbc:h2:mem:velocura_db` | Database connection URL |
+| `DB_USERNAME` | `sa` | Database username |
+| `DB_PASSWORD` | `""` | Database password |
+
+---
+
+## 🚀 Running Locally
+
+### Prerequisites
+- **Java 21 JDK**
+- **Node.js v20+ / v22+**
+- **Python 3.x**
+
+### Step 1: Start the Backend Server
 ```bash
-git clone https://github.com/vkdevz/medinexa.git
 cd medinexa
+python3 run-backend.py
 ```
+*The Spring Boot server will start on **`http://localhost:8080`**.*
 
-### 2. Start the Backend API Server
+### Step 2: Start the Frontend Server
+In a second terminal window:
 ```bash
-cd medinexa-backend
-./mvnw spring-boot:run
+cd medinexa
+python3 run-frontend.py
 ```
-*   **Port**: `http://localhost:8080`
-*   **Admin Seeder Credential**:
-    *   *Email*: `admin@medinexa.com`
-    *   *Password*: `admin_password`
-
-### 3. Start the Frontend Client
-```bash
-cd medinexa-frontend
-npm install
-npm run dev
-```
-*   **URL**: `http://localhost:5173`
+*The Vite React application will start on **`http://localhost:5173`**.*
 
 ---
 
-## 🧪 Running Tests
-To run unit and integration tests inside the backend project directory:
+## 🐳 Docker Deployment
+
+To launch the complete application stack (MySQL 8.0, Spring Boot, and Nginx Frontend) in containerized mode:
+
 ```bash
-cd medinexa-backend
-./mvnw test
+cd medinexa
+docker-compose up --build -d
 ```
+
+### Container Endpoints:
+- **Frontend App**: `http://localhost:3000`
+- **Backend API**: `http://localhost:8080`
+- **MySQL Database**: `localhost:3306`
+
+---
+
+## 🔑 Pre-Seeded Test Credentials
+
+The database automatically seeds default administrative accounts on first launch:
+
+| Role | Email | Password |
+|------|-------|----------|
+| **Admin** | `admin@velocura.com` | `admin_password` |
+| **Admin** | `admin@medinexa.com` | `admin_password` |
+
+*New Patients and Doctors can register directly using the web interface at `/register`.*
+
+---
+
+## 📜 License
+Distributed under the **MIT License**. See `LICENSE` for more information.
