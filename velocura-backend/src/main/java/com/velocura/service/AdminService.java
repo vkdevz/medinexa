@@ -1,0 +1,13 @@
+package com.velocura.service;
+
+import com.velocura.dto.AdminDashboardStatsResponse;
+import com.velocura.dto.UserResponse;
+
+import java.util.List;
+
+public interface AdminService {
+    List<UserResponse> getAllUsers();
+    void verifyDoctor(Long doctorId);
+    AdminDashboardStatsResponse getDashboardStats();
+    List<com.velocura.dto.DoctorProfileResponse> getUnverifiedDoctors();
+}
