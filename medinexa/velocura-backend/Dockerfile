@@ -22,7 +22,7 @@ WORKDIR /app
 RUN addgroup -S medinexa && adduser -S medinexa -G medinexa
 
 # Copy the compiled executable jar from builder stage
-COPY --from=builder /app/target/velocura-backend-*.jar app.jar
+COPY --from=builder /app/target/*.jar app.jar
 
 # Adjust file ownership to the non-root execution user
 RUN chown -R medinexa:medinexa /app
