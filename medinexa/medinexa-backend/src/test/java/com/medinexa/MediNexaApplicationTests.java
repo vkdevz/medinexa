@@ -1,13 +1,13 @@
-package com.medinexa.medinexa_backend;
+package com.medinexa;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class MedinexaBackendApplicationTests {
+class MediNexaApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+    @Test
+    void contextLoads() {
+    }
 
 }
