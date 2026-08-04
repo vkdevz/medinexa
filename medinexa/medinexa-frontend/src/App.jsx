@@ -1,6 +1,7 @@
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { AuthContext } from './context/AuthContext';
+import api from './api';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import PatientDashboard from './pages/PatientDashboard';
@@ -11,6 +12,73 @@ import ProtectedRoute from './components/ProtectedRoute';
 function LandingPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Public Chatbot States
+  const [symptomsInput, setSymptomsInput] = useState('');
+  const [chatHistory, setChatHistory] = useState([
+    {
+      sender: 'ai',
+      text: "Hello! Describe your symptoms in plain language, and I will analyze the clinical severity risk levels, precautions, and home care remedies for you.",
+      triageResult: null
+    }
+  ]);
+  const [anonymousChatCount, setAnonymousChatCount] = useState(0);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
+
+  useEffect(() => {
+    const count = parseInt(localStorage.getItem('anonymousChatCount') || '0');
+    setAnonymousChatCount(count);
+  }, []);
+
+  const handleTriageSubmit = async (e) => {
+    e.preventDefault();
+    if (!symptomsInput.trim()) return;
+
+    if (anonymousChatCount >= 3) {
+      setShowRegisterModal(true);
+      return;
+    }
+
+    setChatLoading(true);
+    const userQuery = symptomsInput;
+    setSymptomsInput('');
+
+    // Append user's query immediately
+    setChatHistory(prev => [...prev, { sender: 'user', text: userQuery, triageResult: null }]);
+
+    try {
+      const res = await api.post('/api/auth/triage', { symptoms: userQuery });
+      const triage = res.data;
+
+      // Increment count
+      const nextCount = anonymousChatCount + 1;
+      localStorage.setItem('anonymousChatCount', nextCount.toString());
+      setAnonymousChatCount(nextCount);
+
+      // Append AI response
+      setChatHistory(prev => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: `Triage Analysis Result:\nRisk Category: ${triage.triageLevel.toUpperCase()}\n\nClinical Summary:\n${triage.clinicalSummary}`,
+          triageResult: triage
+        }
+      ]);
+    } catch (err) {
+      console.error(err);
+      setChatHistory(prev => [
+        ...prev,
+        {
+          sender: 'ai',
+          text: "I'm having trouble analyzing your symptoms right now. Please try again shortly or seek emergency services if your symptoms are critical.",
+          triageResult: null
+        }
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const redirectDashboard = () => {
     if (user.role === 'PATIENT') navigate('/patient/dashboard');
@@ -95,7 +163,7 @@ function LandingPage() {
 
         <div className="mt-10 flex flex-wrap justify-center gap-4">
           <button
-            onClick={() => user ? redirectDashboard() : navigate('/register')}
+            onClick={() => document.getElementById('chatbot-section')?.scrollIntoView({ behavior: 'smooth' })}
             className="bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold px-8 py-4 rounded-xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/45 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm cursor-pointer"
           >
             Start AI Checkup Free
@@ -108,6 +176,184 @@ function LandingPage() {
           </a>
         </div>
       </section>
+
+      {/* PUBLIC INTERACTIVE CHATBOT SECTION */}
+      <section id="chatbot-section" className="max-w-4xl mx-auto px-6 pb-20 w-full relative z-10">
+        <div className="glass-card rounded-3xl p-6 md:p-8 shadow-2xl relative border border-slate-900">
+          <div className="absolute top-[-20%] right-[-10%] w-[250px] h-[250px] bg-cyan-500/5 rounded-full blur-[80px]" />
+          
+          <div className="flex items-center justify-between border-b border-slate-900 pb-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-teal-500 flex items-center justify-center shadow-lg shadow-cyan-500/25">
+                <svg className="w-5 h-5 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">AI Symptom Advisor</h3>
+                <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider font-mono">Anonymous Free Checkup</span>
+              </div>
+            </div>
+            <span className="text-xs text-slate-500 font-mono">
+              Checks remaining: <strong className="text-cyan-400">{Math.max(0, 3 - anonymousChatCount)}</strong> / 3
+            </span>
+          </div>
+
+          {/* Chat Messages Log */}
+          <div className="h-[400px] overflow-y-auto space-y-6 pr-2 mb-6 custom-scrollbar">
+            {chatHistory.map((msg, idx) => (
+              <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed ${
+                  msg.sender === 'user'
+                    ? 'bg-slate-900 border border-slate-800 text-slate-100 rounded-tr-none'
+                    : 'bg-slate-950/60 border border-slate-900 text-slate-300 rounded-tl-none'
+                }`}>
+                  <p className="whitespace-pre-line">{msg.text}</p>
+
+                  {/* Render structured triage results if available */}
+                  {msg.triageResult && (
+                    <div className="mt-6 border-t border-slate-900 pt-5 space-y-5">
+                      
+                      {/* Risk Badge */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-slate-400 font-mono uppercase">Triage Assessment:</span>
+                        <span className={`px-3 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase font-mono border ${
+                          msg.triageResult.triageLevel === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/25 animate-pulse' :
+                          msg.triageResult.triageLevel === 'Moderate' ? 'bg-amber-500/10 text-amber-400 border-amber-500/25' :
+                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                        }`}>
+                          {msg.triageResult.triageLevel}
+                        </span>
+                      </div>
+
+                      {/* Home Care Remedies */}
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-teal-400 font-mono mb-2">🌿 Suggested Home Remedies</h4>
+                        <ul className="list-disc list-inside text-xs text-slate-400 space-y-1 pl-1">
+                          {msg.triageResult.homeRemedies.map((item, i) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* OTC Salt Suggestions */}
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono mb-2">💊 Common OTC Salts/Medications</h4>
+                        <ul className="list-disc list-inside text-xs text-slate-400 space-y-1 pl-1">
+                          {msg.triageResult.suggestedOtc.map((item, i) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                        <p className="text-[10px] text-slate-500 italic mt-2 leading-relaxed">
+                          ⚠️ Disclaimer: Salt/OTC suggestions are for guidelines only. Consult a clinician or pharmacist before dosing.
+                        </p>
+                      </div>
+
+                      {/* Action Channel CTAs */}
+                      <div className="border-t border-slate-900 pt-4 flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={() => navigate('/register')}
+                          className={`flex-1 py-3.5 px-4 rounded-xl text-xs font-bold text-center transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] cursor-pointer ${
+                            msg.triageResult.triageLevel === 'Critical'
+                              ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/15'
+                              : 'bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 shadow-md shadow-cyan-500/10'
+                          }`}
+                        >
+                          {msg.triageResult.triageLevel === 'Critical' ? 'Connect Emergency Doctor' : 'Start Consult (Free Chat)'}
+                        </button>
+                        <button
+                          onClick={() => navigate('/register')}
+                          className="bg-slate-900 border border-slate-800 hover:border-slate-700 text-white font-semibold py-3.5 px-4 rounded-xl text-xs flex-1 transition-all duration-200 cursor-pointer"
+                        >
+                          Book Voice/Video Call
+                        </button>
+                      </div>
+
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            ))}
+
+            {chatLoading && (
+              <div className="flex justify-start">
+                <div className="bg-slate-950/60 border border-slate-900 rounded-2xl p-4 rounded-tl-none flex items-center space-x-2.5">
+                  <div className="flex space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} style={{ marginRight: '8px' }} />
+                  </div>
+                  <span className="text-xs text-slate-500 font-mono">Analyzing symptoms...</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input Console */}
+          <form onSubmit={handleTriageSubmit} className="flex gap-3">
+            <input
+              type="text"
+              required
+              className="flex-1 bg-slate-950 border border-slate-900 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/25 transition-all duration-200"
+              placeholder={anonymousChatCount >= 3 ? "Limit reached. Please register." : "Describe symptoms e.g., 'cough, throat ache, mild fever'"}
+              value={symptomsInput}
+              disabled={anonymousChatCount >= 3 || chatLoading}
+              onChange={(e) => setSymptomsInput(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={anonymousChatCount >= 3 || chatLoading}
+              className="bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold px-6 rounded-xl hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:scale-100 disabled:shadow-none"
+            >
+              Analyze
+            </button>
+          </form>
+
+        </div>
+      </section>
+
+      {/* CONVERSION BARRIER MODAL */}
+      {showRegisterModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative text-center">
+            
+            {/* Center Lock icon decoration */}
+            <div className="mx-auto w-14 h-14 bg-cyan-500/10 border border-cyan-500/25 rounded-2xl flex items-center justify-center mb-6 text-cyan-400">
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-bold text-white">Free Triage Limit Reached</h3>
+            <p className="text-sm text-slate-400 mt-3 leading-relaxed">
+              You've performed 3 free clinical checkups as an anonymous guest. To access complete precautions, log your daily vitals charts, and book direct WebRTC video consultations with verified doctors, please register your free patient account.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3">
+              <button
+                onClick={() => { setShowRegisterModal(false); navigate('/register'); }}
+                className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 text-sm cursor-pointer"
+              >
+                Register Free Account
+              </button>
+              <button
+                onClick={() => { setShowRegisterModal(false); navigate('/login'); }}
+                className="w-full bg-slate-950 border border-slate-800 text-slate-400 font-semibold py-3.5 rounded-xl hover:bg-slate-900 transition-all duration-200 text-sm cursor-pointer"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => setShowRegisterModal(false)}
+                className="text-xs text-slate-600 hover:text-slate-500 font-mono mt-2"
+              >
+                Cancel & Close
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* Feature value propositions */}
       <section id="features" className="max-w-7xl mx-auto px-6 py-20 border-t border-slate-900 w-full relative z-10">

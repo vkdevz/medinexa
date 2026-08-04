@@ -2,6 +2,7 @@ package com.medinexa.controller;
 
 import com.medinexa.dto.*;
 import com.medinexa.service.DoctorService;
+import com.medinexa.service.PatientService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +17,12 @@ import java.util.List;
 public class DoctorController {
 
     private final DoctorService doctorService;
+    private final PatientService patientService;
 
     @Autowired
-    public DoctorController(DoctorService doctorService) {
+    public DoctorController(DoctorService doctorService, PatientService patientService) {
         this.doctorService = doctorService;
+        this.patientService = patientService;
     }
 
     @GetMapping("/profile")
@@ -53,5 +56,10 @@ public class DoctorController {
             @Valid @RequestBody AddMedicalHistoryRequest request) {
         doctorService.addMedicalHistory(userDetails.getUsername(), request);
         return ResponseEntity.ok("Medical history record added successfully!");
+    }
+
+    @GetMapping("/patient-passport/{patientId}")
+    public ResponseEntity<com.medinexa.dto.PatientPassportDto> getPatientPassport(@PathVariable Long patientId) {
+        return ResponseEntity.ok(patientService.getPatientPassportById(patientId));
     }
 }
