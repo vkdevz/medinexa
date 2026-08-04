@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
+import TelehealthRoom from '../components/TelehealthRoom';
 
 const DoctorDashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -30,6 +31,28 @@ const DoctorDashboard = () => {
   const [medication, setMedication] = useState('');
   const [dosage, setDosage] = useState('');
   const [instructions, setInstructions] = useState('');
+  const [activeVideoSession, setActiveVideoSession] = useState(null);
+
+  // Patient Passport states inside doctor panel
+  const [patientAllergies, setPatientAllergies] = useState('');
+  const [patientTimeline, setPatientTimeline] = useState([]);
+  const [passportLoading, setPassportLoading] = useState(false);
+
+  const handleStartConsultation = async (appt) => {
+    setConsultationAppt(appt);
+    setPatientAllergies('');
+    setPatientTimeline([]);
+    try {
+      setPassportLoading(true);
+      const res = await api.get(`/api/doctor/patient-passport/${appt.patientId}`);
+      setPatientAllergies(res.data.allergies || '');
+      setPatientTimeline(JSON.parse(res.data.medicalHistoryTimeline || '[]'));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setPassportLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchDashboardData();
@@ -357,121 +380,172 @@ const DoctorDashboard = () => {
               {/* Consultation Pad Form Overlay */}
               {consultationAppt && (
                 <div className="glass-card rounded-2xl p-8 border border-teal-500/20 shadow-xl">
-                  <div className="flex justify-between items-start mb-6">
+                  <div className="flex justify-between items-start mb-6 border-b border-slate-900 pb-4">
                     <div>
-                      <h4 className="text-lg font-bold text-white">Consultation Pad</h4>
+                      <h4 className="text-lg font-bold text-white">Clinical Consultation Workspace</h4>
                       <p className="text-xs text-slate-400 mt-1 font-mono">Patient: {consultationAppt.patientName}</p>
                     </div>
                     <button 
                       onClick={() => setConsultationAppt(null)}
                       className="text-slate-500 hover:text-slate-300 text-xs font-mono"
                     >
-                      Close Pad
+                      Close Workspace
                     </button>
                   </div>
 
-                  <form onSubmit={handleConsultationSubmit} className="space-y-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     
-                    {/* Diagnostic notes Section */}
-                    <div>
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-teal-400 mb-3 font-mono">1. Diagnosis & Symptoms</h5>
-                      <div className="grid md:grid-cols-2 gap-4">
+                    {/* Left: Consult form inputs */}
+                    <div className="lg:col-span-2 space-y-6">
+                      <form onSubmit={handleConsultationSubmit} className="space-y-6">
+                        
+                        {/* Diagnostic notes Section */}
                         <div>
-                          <label htmlFor="diag" className="block text-xs text-slate-400 font-semibold mb-2">Diagnosis *</label>
-                          <input
-                            id="diag"
-                            type="text"
-                            required
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
-                            placeholder="e.g. Acute Bronchitis"
-                            value={diagnosis}
-                            onChange={(e) => setDiagnosis(e.target.value)}
-                          />
+                          <h5 className="text-xs font-bold uppercase tracking-wider text-teal-400 mb-3 font-mono">1. Diagnosis & Symptoms</h5>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label htmlFor="diag" className="block text-xs text-slate-400 font-semibold mb-2">Diagnosis *</label>
+                              <input
+                                id="diag"
+                                type="text"
+                                required
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
+                                placeholder="e.g. Acute Bronchitis"
+                                value={diagnosis}
+                                onChange={(e) => setDiagnosis(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="symp" className="block text-xs text-slate-400 font-semibold mb-2">Presented Symptoms</label>
+                              <input
+                                id="symp"
+                                type="text"
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
+                                placeholder="e.g. Cough, wheezing, mild fever"
+                                value={symptoms}
+                                onChange={(e) => setSymptoms(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <label htmlFor="treat" className="block text-xs text-slate-400 font-semibold mb-2">Treatment Plan Description</label>
+                            <input
+                              id="treat"
+                              type="text"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
+                              placeholder="e.g. Bed rest, fluid intake, nebulizer if needed"
+                              value={treatment}
+                              onChange={(e) => setTreatment(e.target.value)}
+                            />
+                          </div>
                         </div>
+
+                        {/* Prescription Section */}
                         <div>
-                          <label htmlFor="symp" className="block text-xs text-slate-400 font-semibold mb-2">Presented Symptoms</label>
-                          <input
-                            id="symp"
-                            type="text"
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
-                            placeholder="e.g. Cough, wheezing, mild fever"
-                            value={symptoms}
-                            onChange={(e) => setSymptoms(e.target.value)}
-                          />
+                          <h5 className="text-xs font-bold uppercase tracking-wider text-teal-400 mb-3 font-mono">2. Digital E-Prescription</h5>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <label htmlFor="med" className="block text-xs text-slate-400 font-semibold mb-2">Medication *</label>
+                              <input
+                                id="med"
+                                type="text"
+                                required
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
+                                placeholder="e.g. Amoxicillin 500mg"
+                                value={medication}
+                                onChange={(e) => setMedication(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label htmlFor="dos" className="block text-xs text-slate-400 font-semibold mb-2">Dosage Guide *</label>
+                              <input
+                                id="dos"
+                                type="text"
+                                required
+                                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
+                                placeholder="e.g. 1 capsule three times daily"
+                                value={dosage}
+                                onChange={(e) => setDosage(e.target.value)}
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-4">
+                            <label htmlFor="inst" className="block text-xs text-slate-400 font-semibold mb-2">Special Guidelines / Instructions</label>
+                            <input
+                              id="inst"
+                              type="text"
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
+                              placeholder="e.g. Take with meals, finish the complete course"
+                              value={instructions}
+                              onChange={(e) => setInstructions(e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            type="submit"
+                            disabled={actionLoading}
+                            className="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs hover:shadow-lg hover:shadow-teal-500/10 cursor-pointer"
+                          >
+                            {actionLoading ? 'Saving consultation records...' : 'Submit Consultation & Complete'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setConsultationAppt(null)}
+                            className="bg-slate-950 border border-slate-800 text-slate-400 px-6 py-2.5 rounded-xl text-xs hover:bg-slate-900 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+
+                    {/* Right: Patient Health Passport */}
+                    <div className="lg:col-span-1 bg-slate-950/40 border border-slate-900 rounded-2xl p-6 space-y-6 self-start max-h-[500px] overflow-y-auto custom-scrollbar">
+                      <div>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-teal-400 font-mono mb-3">⚠️ Allergies & Salt Sensitivities</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {patientAllergies.trim() ? (
+                            patientAllergies.split(',').map((tag, idx) => (
+                              <span key={idx} className="px-2 py-1 rounded bg-red-500/10 text-red-400 border border-red-500/20 font-mono text-[10px] font-bold">
+                                {tag.trim()}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-slate-500 italic">No allergies reported.</span>
+                          )}
                         </div>
                       </div>
-                      <div className="mt-4">
-                        <label htmlFor="treat" className="block text-xs text-slate-400 font-semibold mb-2">Treatment Plan Description</label>
-                        <input
-                          id="treat"
-                          type="text"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
-                          placeholder="e.g. Bed rest, fluid intake, nebulizer if needed"
-                          value={treatment}
-                          onChange={(e) => setTreatment(e.target.value)}
-                        />
+
+                      <div className="border-t border-slate-900/60 pt-4">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono mb-4">📜 Historical Timeline Log</h4>
+                        {passportLoading ? (
+                          <div className="text-xs text-slate-500 font-mono">Loading patient medical history...</div>
+                        ) : patientTimeline.length === 0 ? (
+                          <p className="text-xs text-slate-500 italic font-mono">No medical events or surgeries logged.</p>
+                        ) : (
+                          <div className="relative border-l border-slate-900 ml-2 pl-4 space-y-5">
+                            {patientTimeline.map((ev) => (
+                              <div key={ev.id} className="relative">
+                                <span className="absolute -left-[23px] top-1 flex h-3 w-3 items-center justify-center rounded-full bg-slate-950 border-2 border-cyan-500">
+                                  <span className="h-1 w-1 rounded-full bg-cyan-400" />
+                                </span>
+                                <div>
+                                  <span className="text-[9px] text-cyan-400 font-mono font-bold">{ev.date}</span>
+                                  <h5 className="text-xs font-bold text-slate-200 mt-1">{ev.eventType}</h5>
+                                  {ev.description && (
+                                    <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{ev.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Prescription Section */}
-                    <div>
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-teal-400 mb-3 font-mono">2. Digital E-Prescription</h5>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <label htmlFor="med" className="block text-xs text-slate-400 font-semibold mb-2">Medication *</label>
-                          <input
-                            id="med"
-                            type="text"
-                            required
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
-                            placeholder="e.g. Amoxicillin 500mg"
-                            value={medication}
-                            onChange={(e) => setMedication(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="dos" className="block text-xs text-slate-400 font-semibold mb-2">Dosage Guide *</label>
-                          <input
-                            id="dos"
-                            type="text"
-                            required
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
-                            placeholder="e.g. 1 capsule three times daily"
-                            value={dosage}
-                            onChange={(e) => setDosage(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <div className="mt-4">
-                        <label htmlFor="inst" className="block text-xs text-slate-400 font-semibold mb-2">Special Guidelines / Instructions</label>
-                        <input
-                          id="inst"
-                          type="text"
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-teal-500"
-                          placeholder="e.g. Take with meals, finish the complete course"
-                          value={instructions}
-                          onChange={(e) => setInstructions(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        type="submit"
-                        disabled={actionLoading}
-                        className="bg-gradient-to-r from-teal-500 to-emerald-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl text-xs hover:shadow-lg hover:shadow-teal-500/10 cursor-pointer"
-                      >
-                        {actionLoading ? 'Saving consultation records...' : 'Submit Consultation & Complete'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConsultationAppt(null)}
-                        className="bg-slate-950 border border-slate-800 text-slate-400 px-6 py-2.5 rounded-xl text-xs hover:bg-slate-900 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
+                  </div>
                 </div>
               )}
 
@@ -514,8 +588,19 @@ const DoctorDashboard = () => {
                             <td className="py-4 text-right">
                               {(a.status === 'PENDING' || a.status === 'CONFIRMED') && (
                                 <div className="inline-flex gap-2">
+                                  {a.status === 'CONFIRMED' && (
+                                    <button
+                                      onClick={() => setActiveVideoSession({
+                                        roomName: `medinexa-room-${a.appointmentId}`,
+                                        userName: `Dr. ${profile?.firstName} ${profile?.lastName}`
+                                      })}
+                                      className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer"
+                                    >
+                                      Join Call
+                                    </button>
+                                  )}
                                   <button
-                                    onClick={() => setConsultationAppt(a)}
+                                    onClick={() => handleStartConsultation(a)}
                                     className="bg-teal-500 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl hover:bg-teal-400 transition-colors duration-200 cursor-pointer"
                                   >
                                     Consult
@@ -612,6 +697,14 @@ const DoctorDashboard = () => {
 
         </main>
       </div>
+
+      {activeVideoSession && (
+        <TelehealthRoom
+          roomName={activeVideoSession.roomName}
+          userName={activeVideoSession.userName}
+          onClose={() => setActiveVideoSession(null)}
+        />
+      )}
     </div>
   );
 };

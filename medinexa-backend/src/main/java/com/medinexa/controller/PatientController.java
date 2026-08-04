@@ -55,4 +55,16 @@ public class PatientController {
     public ResponseEntity<List<com.medinexa.dto.DoctorProfileResponse>> getDoctors() {
         return ResponseEntity.ok(patientService.getVerifiedDoctors());
     }
+
+    @GetMapping("/passport")
+    public ResponseEntity<com.medinexa.dto.PatientPassportDto> getPassport(@AuthenticationPrincipal UserDetails userDetails) {
+        return ResponseEntity.ok(patientService.getPatientPassport(userDetails.getUsername()));
+    }
+
+    @PutMapping("/passport/update")
+    public ResponseEntity<com.medinexa.dto.PatientPassportDto> updatePassport(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody com.medinexa.dto.PatientPassportDto request) {
+        return ResponseEntity.ok(patientService.updatePatientPassport(userDetails.getUsername(), request));
+    }
 }

@@ -5,6 +5,7 @@ import com.medinexa.dto.MedicalHistoryResponse;
 import com.medinexa.dto.PatientProfileResponse;
 import com.medinexa.dto.PrescriptionResponse;
 import com.medinexa.dto.UpdatePatientProfileRequest;
+import com.medinexa.dto.PatientPassportDto;
 import com.medinexa.exception.ResourceNotFoundException;
 import com.medinexa.model.MedicalHistory;
 import com.medinexa.model.Patient;
@@ -137,6 +138,46 @@ public class PatientServiceImpl implements PatientService {
                 .phoneNumber(patient.getPhoneNumber())
                 .bloodGroup(patient.getBloodGroup())
                 .address(patient.getAddress())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientPassportDto getPatientPassport(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        Patient patient = patientRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient profile not found for user: " + user.getId()));
+        return PatientPassportDto.builder()
+                .allergies(patient.getAllergies())
+                .medicalHistoryTimeline(patient.getMedicalHistoryTimeline())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public PatientPassportDto updatePatientPassport(String email, PatientPassportDto request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + email));
+        Patient patient = patientRepository.findById(user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Patient profile not found for user: " + user.getId()));
+        patient.setAllergies(request.getAllergies());
+        patient.setMedicalHistoryTimeline(request.getMedicalHistoryTimeline());
+        patientRepository.save(patient);
+        return PatientPassportDto.builder()
+                .allergies(patient.getAllergies())
+                .medicalHistoryTimeline(patient.getMedicalHistoryTimeline())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientPassportDto getPatientPassportById(Long patientId) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient profile not found: " + patientId));
+        return PatientPassportDto.builder()
+                .allergies(patient.getAllergies())
+                .medicalHistoryTimeline(patient.getMedicalHistoryTimeline())
                 .build();
     }
 }

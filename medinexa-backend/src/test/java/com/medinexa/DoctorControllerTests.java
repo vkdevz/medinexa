@@ -50,6 +50,25 @@ class DoctorControllerTests {
     @MockBean
     private JwtUtils jwtUtils;
 
+    @MockBean
+    private com.medinexa.service.PatientService patientService;
+
+    @Test
+    @WithMockUser(username = "doctor@medinexa.com", roles = "DOCTOR")
+    void testGetPatientPassportSuccess() throws Exception {
+        com.medinexa.dto.PatientPassportDto mockPassport = com.medinexa.dto.PatientPassportDto.builder()
+                .allergies("Penicillin")
+                .medicalHistoryTimeline("[]")
+                .build();
+
+        Mockito.when(patientService.getPatientPassportById(2L)).thenReturn(mockPassport);
+
+        mockMvc.perform(get("/api/doctor/patient-passport/2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.allergies").value("Penicillin"))
+                .andExpect(jsonPath("$.medicalHistoryTimeline").value("[]"));
+    }
+
     @Test
     @WithMockUser(username = "doctor@medinexa.com", roles = "DOCTOR")
     void testGetProfileSuccess() throws Exception {

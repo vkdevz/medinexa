@@ -128,4 +128,63 @@ public class AuthController {
                 .lastName(user.getLastName())
                 .build());
     }
+
+    @PostMapping("/triage")
+    public ResponseEntity<com.medinexa.dto.TriageResponse> anonymousTriage(@RequestBody com.medinexa.dto.TriageRequest request) {
+        String query = request.getSymptoms() != null ? request.getSymptoms().toLowerCase() : "";
+        
+        String triageLevel = "Mild";
+        String clinicalSummary = "Based on your symptoms, we suggest home care and monitoring. Consult a general physician if symptoms persist.";
+        String recommendedSpecialty = "General Medicine";
+        java.util.List<String> differentialDiagnoses = java.util.List.of("Mild Viral infection", "Common Cold");
+        java.util.List<String> immediatePrecautions = java.util.List.of("Monitor temperature", "Keep hydrated");
+        java.util.List<String> homeRemedies = java.util.List.of("Warm saline gargles", "Adequate bed rest", "Steam inhalation");
+        java.util.List<String> suggestedOtc = java.util.List.of("Paracetamol 650mg (for fever/pain)", "Vitamin C supplements");
+
+        if (query.contains("chest") || query.contains("heart") || query.contains("palpitation") || query.contains("breathless") || query.contains("cardiac")) {
+            triageLevel = "Critical";
+            clinicalSummary = "Your symptoms suggest potential cardiovascular strain or acute distress. Please restrict physical activities and seek immediate expert consultation.";
+            recommendedSpecialty = "Cardiology";
+            differentialDiagnoses = java.util.List.of("Angina Pectoris", "Arrhythmia", "Myocardial Infarction");
+            immediatePrecautions = java.util.List.of("Avoid physical exertion", "Sit upright", "Seek emergency clinical help if chest pressure worsens");
+            homeRemedies = java.util.List.of("Sit in a well-ventilated quiet area", "Practice slow diaphragmatic breathing");
+            suggestedOtc = java.util.List.of("Aspirin 325mg (consult emergency services before taking)");
+        } else if (query.contains("headache") || query.contains("migraine") || query.contains("dizzy") || query.contains("neck pain") || query.contains("seizure")) {
+            triageLevel = "Moderate";
+            clinicalSummary = "Described headache or sensory dizziness symptoms indicate potential migraine trigger or localized neurological stress.";
+            recommendedSpecialty = "Neurology";
+            differentialDiagnoses = java.util.List.of("Migraine Episode", "Tension Headache", "Vestibular Neuritis");
+            immediatePrecautions = java.util.List.of("Rest in a dark quiet room", "Avoid laptop/mobile screens", "Ensure adequate hydration");
+            homeRemedies = java.util.List.of("Cold compress on forehead", "Peppermint oil temple massage");
+            suggestedOtc = java.util.List.of("Ibuprofen 400mg (for pain)", "Acetaminophen 500mg");
+        } else if (query.contains("skin") || query.contains("rash") || query.contains("itch") || query.contains("spots") || query.contains("acne")) {
+            triageLevel = "Mild";
+            clinicalSummary = "Presents localized dermatological irritation or hypersensitivity response.";
+            recommendedSpecialty = "Dermatology";
+            differentialDiagnoses = java.util.List.of("Contact Dermatitis", "Urticaria (Hives)", "Eczema flare-up");
+            immediatePrecautions = java.util.List.of("Do not scratch or rub the affected skin", "Avoid harsh chemical soaps or lotions");
+            homeRemedies = java.util.List.of("Apply aloe vera gel", "Cool oat water baths");
+            suggestedOtc = java.util.List.of("Cetirizine 10mg (for itching)", "Calamine lotion topical application");
+        } else if (query.contains("fracture") || query.contains("bone") || query.contains("joint") || query.contains("sprain") || query.contains("fall")) {
+            triageLevel = "Moderate";
+            clinicalSummary = "Joint or bone impact indicates potential sprain, ligament strain, or minor bone fracture.";
+            recommendedSpecialty = "Orthopedics";
+            differentialDiagnoses = java.util.List.of("Bone Fracture", "Joint Sprain", "Ligament Strain");
+            immediatePrecautions = java.util.List.of("Immobilize the affected limb", "Apply ice packs wrapped in cloth", "Elevate the limb above heart level");
+            homeRemedies = java.util.List.of("Follow the R.I.C.E protocol (Rest, Ice, Compression, Elevation)");
+            suggestedOtc = java.util.List.of("Ibuprofen 400mg (to reduce swelling and pain)");
+        }
+
+        com.medinexa.dto.TriageResponse response = com.medinexa.dto.TriageResponse.builder()
+                .triageLevel(triageLevel)
+                .clinicalSummary(clinicalSummary)
+                .recommendedSpecialty(recommendedSpecialty)
+                .differentialDiagnoses(differentialDiagnoses)
+                .immediatePrecautions(immediatePrecautions)
+                .homeRemedies(homeRemedies)
+                .suggestedOtc(suggestedOtc)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
 }

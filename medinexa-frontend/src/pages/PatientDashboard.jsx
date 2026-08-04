@@ -58,6 +58,14 @@ const PatientDashboard = () => {
   const [chatLoading, setChatLoading] = useState(false);
   const [activeVideoSession, setActiveVideoSession] = useState(null);
 
+  // Health Passport States
+  const [allergies, setAllergies] = useState('');
+  const [timelineEvents, setTimelineEvents] = useState([]);
+  const [timelineDate, setTimelineDate] = useState('');
+  const [timelineEvent, setTimelineEvent] = useState('');
+  const [timelineDesc, setTimelineDesc] = useState('');
+  const [passportLoading, setPassportLoading] = useState(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {
@@ -69,6 +77,47 @@ const PatientDashboard = () => {
     }
     fetchDashboardData();
   }, []);
+
+  const handleUpdatePassport = async (newAllergies, newTimeline) => {
+    try {
+      setPassportLoading(true);
+      const res = await api.put('/api/patient/passport/update', {
+        allergies: newAllergies,
+        medicalHistoryTimeline: JSON.stringify(newTimeline)
+      });
+      setAllergies(res.data.allergies || '');
+      setTimelineEvents(JSON.parse(res.data.medicalHistoryTimeline || '[]'));
+      setSuccess('Health Passport updated successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error(err);
+      setError('Failed to update Health Passport.');
+    } finally {
+      setPassportLoading(false);
+    }
+  };
+
+  const handleAddTimelineEvent = (e) => {
+    e.preventDefault();
+    if (!timelineDate || !timelineEvent) return;
+    const newEvent = {
+      id: Date.now(),
+      date: timelineDate,
+      eventType: timelineEvent,
+      description: timelineDesc
+    };
+    const updatedTimeline = [...timelineEvents, newEvent];
+    handleUpdatePassport(allergies, updatedTimeline);
+    setTimelineDate('');
+    setTimelineEvent('');
+    setTimelineDesc('');
+  };
+
+  const handleDeleteTimelineEvent = (eventId) => {
+    if (!window.confirm('Delete this event from your clinical timeline?')) return;
+    const updatedTimeline = timelineEvents.filter(ev => ev.id !== eventId);
+    handleUpdatePassport(allergies, updatedTimeline);
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -97,6 +146,11 @@ const PatientDashboard = () => {
       if (docsRes.data.length > 0) {
         setSelectedDoctorId(docsRes.data[0].id || '');
       }
+
+      // Load Health Passport details
+      const passportRes = await api.get('/api/patient/passport');
+      setAllergies(passportRes.data.allergies || '');
+      setTimelineEvents(JSON.parse(passportRes.data.medicalHistoryTimeline || '[]'));
     } catch (err) {
       console.error(err);
       setError('Failed to fetch dashboard data. Please try again.');
@@ -375,6 +429,19 @@ const PatientDashboard = () => {
               <span>Overview</span>
             </button>
 
+            {/* HEALTH PASSPORT TAB BUTTON */}
+            <button
+              onClick={() => setActiveTab('passport')}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+                activeTab === 'passport' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 border border-transparent'
+              }`}
+            >
+              <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="font-semibold text-cyan-400">Health Passport</span>
+            </button>
+
             {/* AI ASSISTANT STARTUP TAB BUTTON */}
             <button
               onClick={() => setActiveTab('ai-assistant')}
@@ -502,6 +569,196 @@ const PatientDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{error}</span>
+            </div>
+          )}
+
+          {activeTab === 'passport' && (
+            <div className="space-y-8">
+              
+              {/* Header Info Banner */}
+              <div className="glass-card rounded-3xl p-8 relative overflow-hidden">
+                <div className="absolute top-[-50%] right-[-10%] w-[300px] h-[300px] bg-cyan-500/10 rounded-full blur-[80px]" />
+                <h2 className="text-3xl font-extrabold text-white">Unified Health Passport</h2>
+                <p className="text-slate-400 mt-2 text-sm leading-relaxed max-w-xl">
+                  This passport consolidates your historical surgeries, fractures, allergies, and clinical diagnosis logs. Present this screen to any doctor for an instant, comprehensive view of your medical history.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                {/* Left Column: Allergies & Salt sensitivities */}
+                <div className="md:col-span-1 space-y-6">
+                  <div className="glass-card rounded-2xl p-6 border border-slate-900">
+                    <h3 className="text-base font-bold text-white mb-4">Allergies & Salt Sensitivities</h3>
+                    
+                    {/* Render active allergy tags */}
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {allergies.trim() ? (
+                        allergies.split(',').map((tag, i) => (
+                          <span key={i} className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500/10 text-red-400 border border-red-500/20 font-mono">
+                            ⚠️ {tag.trim()}
+                          </span>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-500 italic">No allergies or drug sensitivities logged.</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-4 border-t border-slate-900/60 pt-4">
+                      <div>
+                        <label htmlFor="allg-input" className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 font-mono">Edit Allergies (Comma-separated)</label>
+                        <input
+                          id="allg-input"
+                          type="text"
+                          className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
+                          placeholder="e.g. Penicillin, Aspirin, Peanuts"
+                          value={allergies}
+                          onChange={(e) => setAllergies(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleUpdatePassport(allergies, timelineEvents)}
+                        disabled={passportLoading}
+                        className="w-full bg-cyan-500 text-slate-950 font-bold py-2 rounded-xl text-xs hover:bg-cyan-400 cursor-pointer disabled:opacity-50"
+                      >
+                        {passportLoading ? 'Saving...' : 'Save Allergies'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Add Medical Event Form */}
+                  <div className="glass-card rounded-2xl p-6 border border-slate-900">
+                    <h3 className="text-base font-bold text-white mb-4">Log Medical Event</h3>
+                    
+                    <form onSubmit={handleAddTimelineEvent} className="space-y-4">
+                      <div>
+                        <label htmlFor="evt-date" className="block text-xs text-slate-400 font-semibold mb-2">Event Date *</label>
+                        <input
+                          id="evt-date"
+                          type="date"
+                          required
+                          className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-cyan-500"
+                          value={timelineDate}
+                          onChange={(e) => setTimelineDate(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="evt-title" className="block text-xs text-slate-400 font-semibold mb-2">Event Name / Surgery *</label>
+                        <input
+                          id="evt-title"
+                          type="text"
+                          required
+                          className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
+                          placeholder="e.g. Wrist Fracture, Appendectomy"
+                          value={timelineEvent}
+                          onChange={(e) => setTimelineEvent(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="evt-desc" className="block text-xs text-slate-400 font-semibold mb-2">Details / Notes</label>
+                        <textarea
+                          id="evt-desc"
+                          rows="3"
+                          className="w-full bg-slate-950 border border-slate-900 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500 resize-none"
+                          placeholder="e.g. Left wrist cast applied for 6 weeks at Boston General Hospital."
+                          value={timelineDesc}
+                          onChange={(e) => setTimelineDesc(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={passportLoading}
+                        className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold py-2 rounded-xl text-xs hover:scale-[1.01] transition-all cursor-pointer"
+                      >
+                        Append to Timeline
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Right Column: Interactive Medical Timeline */}
+                <div className="md:col-span-2">
+                  <div className="glass-card rounded-3xl p-6 md:p-8 border border-slate-900 min-h-[450px]">
+                    <h3 className="text-xl font-bold text-white mb-6">Patient Clinical Timeline</h3>
+                    
+                    {timelineEvents.length === 0 && history.length === 0 ? (
+                      <p className="text-sm text-slate-500 font-mono py-12 text-center">No timeline records logged.</p>
+                    ) : (
+                      <div className="relative border-l border-slate-900 ml-4 pl-6 space-y-8">
+                        
+                        {/* 1. Render User-Logged Events */}
+                        {timelineEvents.map((ev) => (
+                          <div key={ev.id} className="relative">
+                            
+                            {/* Dot indicator */}
+                            <span className="absolute -left-[31px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-950 border-2 border-cyan-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
+                            </span>
+
+                            <div className="p-5 bg-slate-950/40 border border-slate-900 rounded-2xl flex justify-between items-start hover:border-slate-800 transition-colors duration-200">
+                              <div>
+                                <span className="text-[10px] text-cyan-400 font-mono font-bold tracking-wider uppercase bg-cyan-500/10 border border-cyan-500/25 px-2 py-0.5 rounded">
+                                  {ev.date}
+                                </span>
+                                <h4 className="text-base font-bold text-white mt-2.5">{ev.eventType}</h4>
+                                {ev.description && (
+                                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">{ev.description}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleDeleteTimelineEvent(ev.id)}
+                                className="text-slate-600 hover:text-red-400 p-1 cursor-pointer transition-colors duration-200"
+                                title="Remove Event"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+
+                        {/* 2. Render Completed Doctor Consultations */}
+                        {history.map((hist) => (
+                          <div key={hist.id} className="relative">
+                            
+                            {/* Dot indicator */}
+                            <span className="absolute -left-[31px] top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-950 border-2 border-teal-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-teal-400" />
+                            </span>
+
+                            <div className="p-5 bg-slate-950/40 border border-slate-900 rounded-2xl hover:border-slate-800 transition-colors duration-200">
+                              <div className="flex justify-between items-center">
+                                <span className="text-[10px] text-teal-400 font-mono font-bold tracking-wider uppercase bg-teal-500/10 border border-teal-500/25 px-2 py-0.5 rounded">
+                                  {new Date(hist.recordedAt).toLocaleDateString()}
+                                </span>
+                                <span className="text-[9px] text-slate-500 font-mono font-bold tracking-wider uppercase border border-slate-900 px-2 py-0.5 rounded">
+                                  Clinical Record
+                                </span>
+                              </div>
+                              
+                              <h4 className="text-base font-bold text-white mt-2.5">Diagnosed: {hist.diagnosis}</h4>
+                              {hist.symptoms && (
+                                <p className="text-xs text-slate-400 mt-2">
+                                  <strong className="text-slate-300">Symptoms:</strong> {hist.symptoms}
+                                </p>
+                              )}
+                              {hist.treatment && (
+                                <p className="text-xs text-slate-400 mt-1">
+                                  <strong className="text-slate-300">Treatment Plan:</strong> {hist.treatment}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
             </div>
           )}
 
@@ -1058,6 +1315,17 @@ const PatientDashboard = () => {
                             <td className="py-4 text-right">
                               {(a.status === 'PENDING' || a.status === 'CONFIRMED') && (
                                 <div className="inline-flex gap-2">
+                                  {a.status === 'CONFIRMED' && (
+                                    <button
+                                      onClick={() => setActiveVideoSession({
+                                        roomName: `medinexa-room-${a.id}`,
+                                        userName: `${profile?.firstName} ${profile?.lastName}`
+                                      })}
+                                      className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-3 py-1.5 rounded-xl transition-all duration-200 cursor-pointer"
+                                    >
+                                      Join Video Call
+                                    </button>
+                                  )}
                                   <button
                                     onClick={() => { setRescheduleId(a.id); setRescheduleTime(''); }}
                                     className="bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-xs px-3 py-1.5 rounded-xl border border-cyan-500/20 transition-all duration-200 cursor-pointer"
@@ -1157,6 +1425,14 @@ const PatientDashboard = () => {
 
         </main>
       </div>
+
+      {activeVideoSession && (
+        <TelehealthRoom
+          roomName={activeVideoSession.roomName}
+          userName={activeVideoSession.userName}
+          onClose={() => setActiveVideoSession(null)}
+        />
+      )}
     </div>
   );
 };

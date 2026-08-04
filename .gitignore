@@ -9,5 +9,10 @@ dist/
 build/
 *.egg-info/
 
-# Ignore user-uploaded or generated CSV data in the analysis data folder
-rfm_customer_analytics/data/*.csv
+# Ignore frontend & backend modules / build artifacts
+node_modules/
+medinexa-frontend/node_modules/
+medinexa-frontend/dist/
+medinexa-backend/target/
+medinexa-backend/.mvn/
+medinexa-backend/bin/

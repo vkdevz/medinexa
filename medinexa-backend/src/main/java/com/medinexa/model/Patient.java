@@ -36,4 +36,10 @@ public class Patient {
     private String bloodGroup;
 
     private String address;
+
+    @Column(columnDefinition = "TEXT")
+    private String allergies;
+
+    @Column(name = "medical_history_timeline", columnDefinition = "TEXT")
+    private String medicalHistoryTimeline;
 }

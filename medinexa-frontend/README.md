@@ -1,64 +1,16 @@
-# MediNexa Frontend - React Web Application
+# React + Vite
 
-This is the frontend portal of the **MediNexa Next-Generation Digital Healthcare Platform**, built with React.js, React Router, Tailwind CSS, and Axios.
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
----
+Currently, two official plugins are available:
 
-## 🛠️ Technology Stack
-- **Library:** React.js
-- **Build Tool:** Vite (high performance dev server)
-- **Styling:** Tailwind CSS (utility-first styling framework)
-- **Routing:** React Router v6
-- **HTTP Client:** Axios (API interactions with token intercepts)
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
----
+## React Compiler
 
-## 📂 Project Structure
-```
-medinexa-frontend/
-├── public/                 # Static assets (favicons, manifest)
-├── src/
-│   ├── assets/             # Brand logos & design media
-│   ├── components/         # Shared/Reusable UI components
-│   ├── context/            # AuthContext & global state providers
-│   ├── hooks/              # Custom hooks
-│   ├── layouts/            # Dashboard & main layouts
-│   ├── pages/              # Portal view pages (Patient, Doctor, Admin)
-│   ├── services/           # Axios client & API endpoints mapping
-│   ├── App.css             # App overrides
-│   ├── App.jsx             # Main router configurations
-│   ├── index.css           # Tailwind injection point
-│   └── main.jsx            # React app mount bootstrap
-├── tailwind.config.js      # Tailwind configurations & colors
-├── postcss.config.js       # PostCSS config for Tailwind
-├── index.html              # Core single-page template
-└── package.json            # Node project configuration
-```
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
----
+## Expanding the Oxlint configuration
 
-## 🚀 Getting Started
-
-### Prerequisites
-- **Node.js** (v18 or higher recommended)
-- **npm** (v9 or higher)
-
-### Run the Application
-
-Navigate to the directory and install dependencies (if not already done):
-```bash
-npm install
-```
-
-Start the Vite local development server:
-```bash
-npm run dev
-```
-
-The application will run at `http://localhost:5173`. Any changes in source files will live-update in the browser using Hot Module Replacement (HMR).
-
-### Linting & Formatting
-Run oxlint / linter commands:
-```bash
-npx oxlint
-```
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
