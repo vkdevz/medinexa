@@ -159,25 +159,25 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Startup Metrics panel */}
+      {/* System Security & Clinical Trust */}
       <section id="stats" className="max-w-7xl mx-auto px-6 py-16 bg-slate-900/40 border border-slate-900 rounded-3xl w-full relative z-10 text-center">
-        <h2 className="text-2xl font-bold tracking-tight text-white mb-10">MediNexa Platform Milestones</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+        <h2 className="text-2xl font-bold tracking-tight text-white mb-10">Engineered for Medical Privacy & Trust</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <p className="text-3xl font-extrabold text-white">99.4%</p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mt-1">AI Triage Accuracy</p>
+            <p className="text-lg font-bold text-cyan-400">Stateless JWT Auth</p>
+            <p className="text-xs text-slate-500 font-mono mt-2">Role-Based Access Control</p>
           </div>
           <div>
-            <p className="text-3xl font-extrabold text-white">15k+</p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mt-1">Active consultations</p>
+            <p className="text-lg font-bold text-teal-400">Encrypted PII</p>
+            <p className="text-xs text-slate-500 font-mono mt-2">AES-256 Storage Alignment</p>
           </div>
           <div>
-            <p className="text-3xl font-extrabold text-white">500+</p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mt-1">Verified Doctors</p>
+            <p className="text-lg font-bold text-emerald-400">P2P WebRTC Rooms</p>
+            <p className="text-xs text-slate-500 font-mono mt-2">TLS Video Stream Paths</p>
           </div>
           <div>
-            <p className="text-3xl font-extrabold text-white">15 min</p>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mt-1">Avg. Booking Hold</p>
+            <p className="text-lg font-bold text-white">Database Auditing</p>
+            <p className="text-xs text-slate-500 font-mono mt-2">Historical File Access Trails</p>
           </div>
         </div>
       </section>
