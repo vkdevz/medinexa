@@ -98,8 +98,8 @@ public class GeminiAiService {
                         return triageResponse;
                     }
                 }
-            } catch (Exception e) {
-                logger.warn("Live Google Gemini API call returned: {}. Transitioning to VeloCura Advanced Clinical AI Engine.", e.getMessage());
+            } catch (Throwable t) {
+                logger.error("Live Google Gemini API call failed: {}. Transitioning to VeloCura Advanced Clinical AI Engine.", t.getMessage(), t);
             }
         }
 

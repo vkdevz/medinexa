@@ -302,65 +302,41 @@ const PatientDashboard = () => {
   // ==========================================
   // STARTUP FEATURE LOGIC: AI CHAT TRIAGE
   // ==========================================
-  const handleSendSymptomQuery = (e) => {
+  const handleSendSymptomQuery = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    const query = chatInput.trim().toLowerCase();
-    const newUserMessage = { sender: 'user', text: chatInput };
+    const userQuery = chatInput;
+    const newUserMessage = { sender: 'user', text: userQuery };
     
     setChatHistory(prev => [...prev, newUserMessage]);
     setChatInput('');
     setChatLoading(true);
 
-    // Simulate AI clinical analysis wait time
-    setTimeout(() => {
-      let responseText = "";
-      let triageLevel = "Mild";
-      let recommendedSpecialty = "General Medicine";
-      let precautions = [];
-
-      // Core Keyword-based Triage Rules
-      if (query.includes('chest') || query.includes('heart') || query.includes('palpitation') || query.includes('breathless') || query.includes('cardiac')) {
-        triageLevel = "Critical";
-        recommendedSpecialty = "Cardiology";
-        responseText = "Warning: Chest symptoms and breathing difficulties can indicate cardiovascular issues. We highly recommend consulting a cardiologist immediately. If you experience severe chest crushing pressure, radiating left arm pain, or sweating, call emergency services (911) immediately.";
-        precautions = ["Avoid strenuous physical exertion.", "Sit upright in a well-ventilated area.", "Have someone accompany you."];
-      } else if (query.includes('headache') || query.includes('migraine') || query.includes('dizzy') || query.includes('neck pain') || query.includes('seizure')) {
-        triageLevel = "Moderate";
-        recommendedSpecialty = "Neurology";
-        responseText = "Your described symptoms (headache, dizziness, or neck pain) suggest neurological involvement or tension. Rest in a quiet, dark room, hydrate, and consider booking a neurological consultation.";
-        precautions = ["Rest in a darkened, noise-free room.", "Avoid screen time.", "Track the headache duration and triggers."];
-      } else if (query.includes('skin') || query.includes('rash') || query.includes('itch') || query.includes('spots') || query.includes('acne')) {
-        triageLevel = "Mild";
-        recommendedSpecialty = "Dermatology";
-        responseText = "Your symptoms suggest a dermatological reaction or condition. Avoid scratching the affected area, wash with mild soap, and book a consultation with a dermatologist.";
-        precautions = ["Keep the affected area clean and dry.", "Avoid using perfumed lotions.", "Do not scratch."];
-      } else if (query.includes('fever') || query.includes('cold') || query.includes('cough') || query.includes('throat') || query.includes('flu') || query.includes('body ache')) {
-        triageLevel = "Mild";
-        recommendedSpecialty = "General Medicine";
-        responseText = "Your symptoms correspond to viral upper respiratory tract symptoms or mild influenza. Rest, keep hydrated, and monitor temperature. Consider consulting a general physician if symptoms persist.";
-        precautions = ["Maintain proper hydration (water, warm soups).", "Take steam inhalations.", "Monitor body temperature twice daily."];
-      } else {
-        triageLevel = "Moderate";
-        recommendedSpecialty = "General Medicine";
-        responseText = "Based on your input, we recommend an initial triage consultation with a General Medicine practitioner. They will diagnose symptoms and coordinate specialist referrals.";
-        precautions = ["Monitor vital statistics.", "Keep records of symptom occurrences."];
-      }
+    try {
+      const res = await api.post('/api/auth/triage', { symptoms: userQuery });
+      const triage = res.data;
 
       const botMessage = {
         sender: 'bot',
-        text: responseText,
-        data: {
-          triageLevel,
-          recommendedSpecialty,
-          precautions
-        }
+        text: `Triage Analysis Result:\nRisk Category: ${triage.triageLevel.toUpperCase()}\n\nClinical Summary:\n${triage.clinicalSummary}`,
+        data: triage
       };
 
       setChatHistory(prev => [...prev, botMessage]);
+    } catch (err) {
+      console.error(err);
+      setChatHistory(prev => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: "I'm having trouble analyzing your symptoms right now. Please try again shortly or seek emergency services if your symptoms are critical.",
+          data: null
+        }
+      ]);
+    } finally {
       setChatLoading(false);
-    }, 1200);
+    }
   };
 
   // ==========================================

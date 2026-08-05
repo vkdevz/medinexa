@@ -319,15 +319,8 @@ const PatientDashboard = () => {
 
       const botMessage = {
         sender: 'bot',
-        text: triage.clinicalSummary || 'Analysis complete.',
-        data: {
-          triageLevel: triage.triageLevel,
-          recommendedSpecialty: triage.recommendedSpecialty,
-          precautions: triage.immediatePrecautions || [],
-          homeRemedies: triage.homeRemedies || [],
-          suggestedOtc: triage.suggestedOtc || [],
-          differentialDiagnoses: triage.differentialDiagnoses || []
-        }
+        text: `Triage Analysis Result:\nRisk Category: ${triage.triageLevel.toUpperCase()}\n\nClinical Summary:\n${triage.clinicalSummary}`,
+        data: triage
       };
 
       setChatHistory(prev => [...prev, botMessage]);
