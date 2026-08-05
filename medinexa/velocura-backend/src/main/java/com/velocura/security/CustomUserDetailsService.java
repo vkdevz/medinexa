@@ -26,8 +26,8 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
-        if (!user.isActive()) {
-            throw new UsernameNotFoundException("User account is inactive: " + email);
+        if (!user.isActive() || user.isDeleted()) {
+            throw new UsernameNotFoundException("User account is inactive or deleted: " + email);
         }
 
         String roleName = "ROLE_" + user.getRole().name();

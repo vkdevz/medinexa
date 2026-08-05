@@ -428,53 +428,63 @@ const AdminDashboard = () => {
                           u.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           u.lastName.toLowerCase().includes(searchQuery.toLowerCase())
                         )
-                        .map((u) => (
-                          <tr key={u.id} className="hover:bg-slate-900/10">
-                            <td className="py-4 font-mono text-xs text-slate-500">#{u.id}</td>
-                            <td className="py-4 font-bold text-white">{u.email}</td>
-                            <td className="py-4">{u.firstName} {u.lastName}</td>
-                            <td className="py-4">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono tracking-wide ${
-                                u.role === 'ADMIN' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                                u.role === 'DOCTOR' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' :
-                                'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                              }`}>
-                                {u.role}
-                              </span>
-                            </td>
-                            <td className="py-4">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono tracking-wide ${
-                                u.active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                              }`}>
-                                {u.active ? 'Active' : 'Suspended'}
-                              </span>
-                            </td>
-                            <td className="py-4 text-right flex items-center justify-end gap-2">
-                              {u.role !== 'ADMIN' && (
-                                <>
-                                  <button
-                                    onClick={() => handleToggleActive(u.id)}
-                                    disabled={actionLoading}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
-                                      u.active 
-                                        ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25'
-                                        : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25'
-                                    }`}
-                                  >
-                                    {u.active ? 'Suspend' : 'Activate'}
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteUser(u.id)}
-                                    disabled={actionLoading}
-                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer"
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                        .map((u) => {
+                          const displayEmail = u.email.includes('_deleted_') ? u.email.split('_deleted_')[0] : u.email;
+                          return (
+                            <tr key={u.id} className={`hover:bg-slate-900/10 ${u.isDeleted ? 'opacity-65' : ''}`}>
+                              <td className="py-4 font-mono text-xs text-slate-500">#{u.id}</td>
+                              <td className="py-4 font-bold text-white">
+                                {displayEmail}
+                                {u.isDeleted && <span className="ml-2 text-[9px] bg-slate-800 text-slate-500 px-1 py-0.5 rounded font-mono">ARCHIVED</span>}
+                              </td>
+                              <td className="py-4">{u.firstName} {u.lastName}</td>
+                              <td className="py-4">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase font-mono tracking-wide ${
+                                  u.role === 'ADMIN' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
+                                  u.role === 'DOCTOR' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' :
+                                  'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                                }`}>
+                                  {u.role}
+                                </span>
+                              </td>
+                              <td className="py-4">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono tracking-wide ${
+                                  u.isDeleted ? 'bg-slate-500/10 text-slate-400 border border-slate-500/20' :
+                                  u.active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                }`}>
+                                  {u.isDeleted ? 'Deleted' : u.active ? 'Active' : 'Suspended'}
+                                </span>
+                              </td>
+                              <td className="py-4 text-right flex items-center justify-end gap-2">
+                                {u.role !== 'ADMIN' && !u.isDeleted && (
+                                  <>
+                                    <button
+                                      onClick={() => handleToggleActive(u.id)}
+                                      disabled={actionLoading}
+                                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
+                                        u.active 
+                                          ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/25'
+                                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25'
+                                      }`}
+                                    >
+                                      {u.active ? 'Suspend' : 'Activate'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteUser(u.id)}
+                                      disabled={actionLoading}
+                                      className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer"
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                )}
+                                {u.isDeleted && (
+                                  <span className="text-xs text-slate-500 font-mono italic pr-2">History Retained</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>

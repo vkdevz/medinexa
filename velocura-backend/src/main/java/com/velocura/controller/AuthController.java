@@ -321,9 +321,8 @@ public class AuthController {
         ));
     }
 
-    @DeleteMapping("/profile/delete")
-    @Transactional
-    public ResponseEntity<?> deleteMyProfile() {
+    @PostMapping("/profile/delete/request")
+    public ResponseEntity<?> requestProfileDeletionOtp() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body("Error: Access denied. Must be authenticated.");
@@ -337,9 +336,46 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Error: Administrative accounts cannot self-delete.");
         }
 
-        // Delegate entire cascading deletion block securely
+        // Generate and send OTP code specifically for account self-deletion confirmation
+        OtpController.generateAndSendOtp(currentEmail, notificationService);
+
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "A secure account deletion verification code has been dispatched to your registered email."
+        ));
+    }
+
+    @PostMapping("/profile/delete/confirm")
+    @Transactional
+    public ResponseEntity<?> confirmProfileDeletion(@RequestBody java.util.Map<String, String> requestBody) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body("Error: Access denied. Must be authenticated.");
+        }
+
+        String code = requestBody.get("code");
+        if (code == null || code.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Verification code is required.");
+        }
+
+        String currentEmail = auth.getName();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Error: Authenticated user profile not found."));
+
+        if (user.getRole() == Role.ADMIN) {
+            return ResponseEntity.badRequest().body("Error: Administrative accounts cannot self-delete.");
+        }
+
+        // Verify OTP code
+        boolean matched = OtpController.verifyAndRemoveOtp(currentEmail, code);
+        if (!matched) {
+            return ResponseEntity.badRequest().body("Error: Invalid or expired account deletion verification code.");
+        }
+
+        // Execute soft delete cascade
         adminService.deleteUser(user.getId());
 
-        return ResponseEntity.ok("Your account and all associated records have been successfully and permanently deleted.");
+        return ResponseEntity.ok(java.util.Map.of(
+            "message", "Your account and associated profile records have been successfully deleted."
+        ));
     }
 }

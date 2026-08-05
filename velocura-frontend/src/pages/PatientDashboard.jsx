@@ -36,6 +36,12 @@ const PatientDashboard = () => {
   const [rescheduleId, setRescheduleId] = useState(null);
   const [rescheduleTime, setRescheduleTime] = useState('');
 
+  // Account Self-Deletion states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteCode, setDeleteCode] = useState('');
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteSuccess, setDeleteSuccess] = useState('');
+
   // ==========================================
   // STARTUP FEATURE STATES: AI CHAT & VITALS
   // ==========================================
@@ -188,18 +194,48 @@ const PatientDashboard = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    if (!window.confirm('WARNING: Are you absolutely sure you want to permanently delete your VeloCura patient profile, medical records, and account? This action cannot be undone.')) {
+  const handleInitiateDelete = async () => {
+    if (!window.confirm('WARNING: Are you absolutely sure you want to permanently delete your VeloCura health account? This will dispatch a secure validation code to your email.')) {
       return;
     }
+    setDeleteError('');
+    setDeleteSuccess('');
+    setDeleteCode('');
     setActionLoading(true);
     try {
-      await api.delete('/api/auth/profile/delete');
-      logout();
-      navigate('/login');
+      await api.post('/api/auth/profile/delete/request');
+      setDeleteSuccess('Verification code sent to your email. Check your inbox or console output.');
+      setShowDeleteModal(true);
     } catch (err) {
       console.error(err);
-      setError('Failed to process account deletion request.');
+      setError('Failed to initiate account deletion request.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmDelete = async (e) => {
+    e.preventDefault();
+    setDeleteError('');
+    setDeleteSuccess('');
+    setActionLoading(true);
+    try {
+      const res = await api.post('/api/auth/profile/delete/confirm', { code: deleteCode });
+      setDeleteSuccess(res.data.message || 'Account successfully deleted.');
+      setTimeout(() => {
+        setShowDeleteModal(false);
+        logout();
+        navigate('/login');
+      }, 1500);
+    } catch (err) {
+      console.error(err);
+      if (err.response && err.response.data && typeof err.response.data.message === 'string') {
+        setDeleteError(err.response.data.message);
+      } else if (err.response && err.response.data && typeof err.response.data === 'string') {
+        setDeleteError(err.response.data);
+      } else {
+        setDeleteError('Invalid verification code. Please check and try again.');
+      }
     } finally {
       setActionLoading(false);
     }
@@ -1239,11 +1275,11 @@ const PatientDashboard = () => {
                   </p>
                   <button
                     type="button"
-                    onClick={handleDeleteAccount}
+                    onClick={handleInitiateDelete}
                     disabled={actionLoading}
                     className="mt-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer disabled:opacity-40"
                   >
-                    {actionLoading ? 'Deleting Account...' : 'Permanently Delete My Account'}
+                    {actionLoading ? 'Sending OTP...' : 'Request Account Deletion OTP'}
                   </button>
                 </div>
               </div>
@@ -1504,6 +1540,78 @@ const PatientDashboard = () => {
           userName={activeVideoSession.userName}
           onClose={() => setActiveVideoSession(null)}
         />
+      )}
+
+      {/* Account Deletion OTP Confirmation Modal Overlay */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative">
+            
+            {/* Warning SVG Decoration */}
+            <div className="mx-auto w-12 h-12 bg-red-500/10 border border-red-500/25 rounded-2xl flex items-center justify-center mb-6 text-red-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-bold text-center text-white">Confirm Account Deletion</h3>
+            <p className="text-xs text-slate-400 text-center mt-2 leading-relaxed">
+              For security, please enter the 6-digit verification code sent to your registered email to permanently delete your account.
+            </p>
+
+            {deleteError && (
+              <div className="mt-4 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{deleteError}</span>
+              </div>
+            )}
+
+            {deleteSuccess && (
+              <div className="mt-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{deleteSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmDelete} className="mt-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 font-mono">6-Digit Verification Code</label>
+                <input
+                  type="text"
+                  maxLength="6"
+                  required
+                  placeholder="000000"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-center tracking-[0.2em] font-bold font-mono text-white focus:outline-none focus:border-cyan-500/50 transition-all duration-200"
+                  value={deleteCode}
+                  onChange={(e) => setDeleteCode(e.target.value.replace(/\D/g, ''))}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="w-full bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold py-3.5 rounded-xl text-sm transition-all duration-200 cursor-pointer disabled:opacity-40"
+              >
+                {actionLoading ? 'Deleting Account...' : 'Verify & Delete Account'}
+              </button>
+            </form>
+
+            <div className="text-center mt-6">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="text-xs text-slate-500 hover:text-slate-400 font-semibold"
+              >
+                Cancel / Close
+              </button>
+            </div>
+
+          </div>
+        </div>
       )}
     </div>
   );

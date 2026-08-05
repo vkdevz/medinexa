@@ -17,4 +17,5 @@ public class UserResponse {
     private String lastName;
     private Role role;
     private boolean isActive;
+    private boolean isDeleted;
 }

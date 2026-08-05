@@ -57,6 +57,7 @@ public class AdminServiceImpl implements AdminService {
                         .lastName(u.getLastName())
                         .role(u.getRole())
                         .isActive(u.isActive())
+                        .isDeleted(u.isDeleted())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -131,32 +132,15 @@ public class AdminServiceImpl implements AdminService {
             throw new IllegalArgumentException("Administrative accounts cannot be deleted.");
         }
 
-        // Delete cascade: appointments
-        List<com.velocura.model.Appointment> patientAppts = appointmentRepository.findByPatientId(userId);
-        if (patientAppts != null) appointmentRepository.deleteAll(patientAppts);
+        // Soft delete user: deactivate and flag deleted
+        user.setDeleted(true);
+        user.setActive(false);
         
-        List<com.velocura.model.Appointment> doctorAppts = appointmentRepository.findByDoctorId(userId);
-        if (doctorAppts != null) appointmentRepository.deleteAll(doctorAppts);
-
-        // Delete cascade: prescriptions
-        List<com.velocura.model.Prescription> patientRx = prescriptionRepository.findByPatientIdOrderByIssuedAtDesc(userId);
-        if (patientRx != null) prescriptionRepository.deleteAll(patientRx);
-
-        List<com.velocura.model.Prescription> doctorRx = prescriptionRepository.findByDoctorIdOrderByIssuedAtDesc(userId);
-        if (doctorRx != null) prescriptionRepository.deleteAll(doctorRx);
-
-        // Delete cascade: medical histories
-        List<com.velocura.model.MedicalHistory> history = medicalHistoryRepository.findByPatientIdOrderByRecordedAtDesc(userId);
-        if (history != null) medicalHistoryRepository.deleteAll(history);
-
-        // Delete profiles
-        if (patientRepository.existsById(userId)) {
-            patientRepository.deleteById(userId);
+        // Append unique timestamp suffix to free up email address for reuse while maintaining history
+        if (!user.getEmail().contains("_deleted_")) {
+            user.setEmail(user.getEmail() + "_deleted_" + System.currentTimeMillis());
         }
-        if (doctorRepository.existsById(userId)) {
-            doctorRepository.deleteById(userId);
-        }
-
-        userRepository.delete(user);
+        
+        userRepository.save(user);
     }
 }
