@@ -40,6 +40,9 @@ public class AuthController {
     private final GeminiAiService geminiAiService;
 
     @Autowired
+    private com.velocura.service.AdminService adminService;
+
+    @Autowired
     public AuthController(
             UserRepository userRepository,
             PatientRepository patientRepository,
@@ -270,5 +273,73 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/reset-password/request")
+    public ResponseEntity<?> requestPasswordReset(@RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Email address is required.");
+        }
+
+        String cleanedEmail = email.toLowerCase().trim();
+        if (!userRepository.existsByEmail(cleanedEmail)) {
+            return ResponseEntity.badRequest().body("Error: No user account found with that email address.");
+        }
+
+        // Generate and dispatch reset OTP
+        OtpController.generateAndSendOtp(cleanedEmail, notificationService);
+
+        return ResponseEntity.ok().body(java.util.Map.of(
+            "message", "A password reset verification code has been dispatched to " + cleanedEmail
+        ));
+    }
+
+    @PostMapping("/reset-password/verify")
+    public ResponseEntity<?> verifyPasswordReset(@RequestBody java.util.Map<String, String> request) {
+        String email = request.get("email");
+        String code = request.get("code");
+        String newPassword = request.get("newPassword");
+
+        if (email == null || code == null || newPassword == null || email.trim().isEmpty() || code.trim().isEmpty() || newPassword.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Error: Email, verification code, and new password are required.");
+        }
+
+        String cleanedEmail = email.toLowerCase().trim();
+        boolean matched = OtpController.verifyAndRemoveOtp(cleanedEmail, code);
+        if (!matched) {
+            return ResponseEntity.badRequest().body("Error: Invalid or expired password reset verification code.");
+        }
+
+        User user = userRepository.findByEmail(cleanedEmail)
+                .orElseThrow(() -> new RuntimeException("Error: User profile not found."));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        return ResponseEntity.ok().body(java.util.Map.of(
+            "message", "Password has been successfully updated! You can now log in with your new password."
+        ));
+    }
+
+    @DeleteMapping("/profile/delete")
+    @Transactional
+    public ResponseEntity<?> deleteMyProfile() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth.getPrincipal().equals("anonymousUser")) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).body("Error: Access denied. Must be authenticated.");
+        }
+
+        String currentEmail = auth.getName();
+        User user = userRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Error: Authenticated user profile not found."));
+
+        if (user.getRole() == Role.ADMIN) {
+            return ResponseEntity.badRequest().body("Error: Administrative accounts cannot self-delete.");
+        }
+
+        // Delegate entire cascading deletion block securely
+        adminService.deleteUser(user.getId());
+
+        return ResponseEntity.ok("Your account and all associated records have been successfully and permanently deleted.");
     }
 }

@@ -1,10 +1,12 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import TelehealthRoom from '../components/TelehealthRoom';
 
 const DoctorDashboard = () => {
   const { user, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
 
   // Core Data states
@@ -107,6 +109,23 @@ const DoctorDashboard = () => {
       } else {
         setError('Failed to update profile details.');
       }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('WARNING: Are you absolutely sure you want to permanently delete your VeloCura doctor profile, consultations, and account? This action cannot be undone.')) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await api.delete('/api/auth/profile/delete');
+      logout();
+      navigate('/login');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to process account deletion request.');
     } finally {
       setActionLoading(false);
     }
@@ -692,6 +711,24 @@ const DoctorDashboard = () => {
                   {actionLoading ? 'Saving...' : 'Save Profile Changes'}
                 </button>
               </form>
+
+              {/* Danger Zone */}
+              <div className="mt-12 pt-8 border-t border-slate-900">
+                <div className="p-6 rounded-2xl bg-red-500/5 border border-red-500/20">
+                  <h4 className="text-sm font-bold text-red-400 uppercase tracking-wider font-mono">⚠️ Security Danger Zone</h4>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Permanently delete your VeloCura physician profile, consultations records, schedule configurations, and portal account. This action cannot be reversed.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    disabled={actionLoading}
+                    className="mt-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer disabled:opacity-40"
+                  >
+                    {actionLoading ? 'Deleting Account...' : 'Permanently Delete My Account'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

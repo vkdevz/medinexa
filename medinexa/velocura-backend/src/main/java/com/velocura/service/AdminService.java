@@ -10,4 +10,6 @@ public interface AdminService {
     void verifyDoctor(Long doctorId);
     AdminDashboardStatsResponse getDashboardStats();
     List<com.velocura.dto.DoctorProfileResponse> getUnverifiedDoctors();
+    void toggleUserActive(Long userId);
+    void deleteUser(Long userId);
 }

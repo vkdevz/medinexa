@@ -215,40 +215,90 @@ function LandingPage() {
                   {msg.triageResult && (
                     <div className="mt-6 border-t border-slate-900 pt-5 space-y-5">
                       
-                      {/* Risk Badge */}
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-slate-400 font-mono uppercase">Triage Assessment:</span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase font-mono border ${
-                          msg.triageResult.triageLevel === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/25 animate-pulse' :
-                          msg.triageResult.triageLevel === 'Moderate' ? 'bg-amber-500/10 text-amber-400 border-amber-500/25' :
-                          'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-                        }`}>
-                          {msg.triageResult.triageLevel}
-                        </span>
+                      {/* Risk Badge & Specialty */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-500 font-mono uppercase">Risk Level:</span>
+                          <span className={`px-3 py-1 rounded-full text-xs font-extrabold tracking-wide uppercase font-mono border ${
+                            msg.triageResult.triageLevel === 'Critical' ? 'bg-red-500/10 text-red-400 border-red-500/25 animate-pulse' :
+                            msg.triageResult.triageLevel === 'Moderate' ? 'bg-amber-500/10 text-amber-400 border-amber-500/25' :
+                            'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                          }`}>
+                            {msg.triageResult.triageLevel}
+                          </span>
+                        </div>
+                        {msg.triageResult.recommendedSpecialty && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-500 font-mono uppercase">Specialty:</span>
+                            <span className="px-3 py-1 rounded-full text-xs font-extrabold font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                              {msg.triageResult.recommendedSpecialty}
+                            </span>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Clinical Summary */}
+                      {msg.triageResult.clinicalSummary && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono mb-1.5">📝 Clinical Summary</h4>
+                          <p className="text-xs text-slate-400 leading-relaxed bg-slate-950/40 border border-slate-900 rounded-xl p-3">
+                            {msg.triageResult.clinicalSummary}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Differential Diagnoses */}
+                      {msg.triageResult.differentialDiagnoses && msg.triageResult.differentialDiagnoses.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono mb-2">🔬 Differential Diagnoses</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {msg.triageResult.differentialDiagnoses.map((diag, i) => (
+                              <span key={i} className="px-2.5 py-1 rounded-lg text-xs font-bold font-mono bg-slate-900 text-slate-300 border border-slate-850">
+                                {diag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Immediate Precautions */}
+                      {msg.triageResult.immediatePrecautions && msg.triageResult.immediatePrecautions.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400 font-mono mb-2">⚠️ Immediate Precautions</h4>
+                          <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-1">
+                            {msg.triageResult.immediatePrecautions.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                       {/* Home Care Remedies */}
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-teal-400 font-mono mb-2">🌿 Suggested Home Remedies</h4>
-                        <ul className="list-disc list-inside text-xs text-slate-400 space-y-1 pl-1">
-                          {msg.triageResult.homeRemedies.map((item, i) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
+                      {msg.triageResult.homeRemedies && msg.triageResult.homeRemedies.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-teal-400 font-mono mb-2">🌿 Suggested Home Remedies</h4>
+                          <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-1">
+                            {msg.triageResult.homeRemedies.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
 
                       {/* OTC Salt Suggestions */}
-                      <div>
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono mb-2">💊 Common OTC Salts/Medications</h4>
-                        <ul className="list-disc list-inside text-xs text-slate-400 space-y-1 pl-1">
-                          {msg.triageResult.suggestedOtc.map((item, i) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                        </ul>
-                        <p className="text-[10px] text-slate-500 italic mt-2 leading-relaxed">
-                          ⚠️ Disclaimer: Salt/OTC suggestions are for guidelines only. Consult a clinician or pharmacist before dosing.
-                        </p>
-                      </div>
+                      {msg.triageResult.suggestedOtc && msg.triageResult.suggestedOtc.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono mb-2">💊 Common OTC Salts/Medications</h4>
+                          <ul className="list-disc list-inside text-xs text-slate-400 space-y-1.5 pl-1">
+                            {msg.triageResult.suggestedOtc.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                          <p className="text-[10px] text-slate-500 italic mt-2.5 leading-relaxed">
+                            ⚠️ Disclaimer: Salt/OTC suggestions are for guidelines only. Consult a clinician or pharmacist before dosing.
+                          </p>
+                        </div>
+                      )}
 
                       {/* Action Channel CTAs */}
                       <div className="border-t border-slate-900 pt-4 flex flex-col sm:flex-row gap-3">

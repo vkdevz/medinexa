@@ -188,6 +188,23 @@ const PatientDashboard = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('WARNING: Are you absolutely sure you want to permanently delete your VeloCura patient profile, medical records, and account? This action cannot be undone.')) {
+      return;
+    }
+    setActionLoading(true);
+    try {
+      await api.delete('/api/auth/profile/delete');
+      logout();
+      navigate('/login');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to process account deletion request.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleCancelAppointment = async (apptId) => {
     if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
     setError('');
@@ -888,44 +905,105 @@ const PatientDashboard = () => {
 
                       {/* Render structured triage advice */}
                       {msg.data && (
-                        <div className="mt-4 pt-4 border-t border-slate-800 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold font-mono text-slate-400">TRIAGE RISK LEVEL:</span>
-                            <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
-                              msg.data.triageLevel === 'Critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                              msg.data.triageLevel === 'Moderate' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                              'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            }`}>
-                              {msg.data.triageLevel}
-                            </span>
+                        <div className="mt-4 pt-4 border-t border-slate-800 space-y-4">
+                          {/* Risk Badge & Specialty */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold font-mono text-slate-400">TRIAGE RISK LEVEL:</span>
+                              <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
+                                msg.data.triageLevel === 'Critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                msg.data.triageLevel === 'Moderate' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                                'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              }`}>
+                                {msg.data.triageLevel}
+                              </span>
+                            </div>
+                            {msg.data.recommendedSpecialty && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold font-mono text-slate-400">SPECIALTY:</span>
+                                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                  {msg.data.recommendedSpecialty}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
-                          <div>
-                            <span className="text-xs font-bold font-mono text-slate-400 block mb-1">IMMEDIATE PRECAUTIONS:</span>
-                            <ul className="list-disc list-inside text-xs text-slate-400 space-y-1">
-                              {msg.data.precautions.map((prec, i) => (
-                                <li key={i}>{prec}</li>
-                              ))}
-                            </ul>
-                          </div>
+                          {/* Clinical Summary */}
+                          {msg.data.clinicalSummary && (
+                            <div>
+                              <span className="text-xs font-bold font-mono text-slate-400 block mb-1">📝 CLINICAL SUMMARY:</span>
+                              <p className="text-xs text-slate-400 leading-relaxed bg-slate-950/40 border border-slate-900 rounded-xl p-3">
+                                {msg.data.clinicalSummary}
+                              </p>
+                            </div>
+                          )}
 
-                          <div className="flex items-center justify-between pt-2">
-                            <span className="text-xs font-bold font-mono text-teal-400">
-                              RECOMENDED SPECIALIST: {msg.data.recommendedSpecialty}
-                            </span>
+                          {/* Differential Diagnoses */}
+                          {msg.data.differentialDiagnoses && msg.data.differentialDiagnoses.length > 0 && (
+                            <div>
+                              <span className="text-xs font-bold font-mono text-slate-400 block mb-1.5">🔬 DIFFERENTIAL DIAGNOSES:</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {msg.data.differentialDiagnoses.map((diag, i) => (
+                                  <span key={i} className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-slate-800 text-slate-300 border border-slate-700">
+                                    {diag}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Immediate Precautions */}
+                          {msg.data.immediatePrecautions && msg.data.immediatePrecautions.length > 0 && (
+                            <div>
+                              <span className="text-xs font-bold font-mono text-rose-400 block mb-1">⚠️ IMMEDIATE PRECAUTIONS:</span>
+                              <ul className="list-disc list-inside text-xs text-slate-400 space-y-1">
+                                {msg.data.immediatePrecautions.map((prec, i) => (
+                                  <li key={i}>{prec}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Home Remedies */}
+                          {msg.data.homeRemedies && msg.data.homeRemedies.length > 0 && (
+                            <div>
+                              <span className="text-xs font-bold font-mono text-teal-400 block mb-1">🌿 HOME REMEDIES:</span>
+                              <ul className="list-disc list-inside text-xs text-slate-400 space-y-1">
+                                {msg.data.homeRemedies.map((rem, i) => (
+                                  <li key={i}>{rem}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* OTC Medications */}
+                          {msg.data.suggestedOtc && msg.data.suggestedOtc.length > 0 && (
+                            <div>
+                              <span className="text-xs font-bold font-mono text-cyan-400 block mb-1">💊 SUGGESTED OTC SALTS:</span>
+                              <ul className="list-disc list-inside text-xs text-slate-400 space-y-1">
+                                {msg.data.suggestedOtc.map((otc, i) => (
+                                  <li key={i}>{otc}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-end pt-2 border-t border-slate-900">
                             <button
                               onClick={() => {
                                 // Jump directly to booking
                                 setActiveTab('book');
                                 // Select doctor matching this specialty if possible
-                                const matchingDoc = doctors.find(d => d.specialization.toLowerCase() === msg.data.recommendedSpecialty.toLowerCase());
-                                if (matchingDoc) {
-                                  setSelectedDoctorId(matchingDoc.id);
+                                if (msg.data.recommendedSpecialty) {
+                                  const matchingDoc = doctors.find(d => d.specialization.toLowerCase() === msg.data.recommendedSpecialty.toLowerCase());
+                                  if (matchingDoc) {
+                                    setSelectedDoctorId(matchingDoc.id);
+                                  }
                                 }
                               }}
-                              className="bg-teal-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-[10px] hover:bg-teal-400 transition-colors duration-200 cursor-pointer"
+                              className="bg-teal-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs hover:bg-teal-400 transition-colors duration-200 cursor-pointer"
                             >
-                              Book with Specialist
+                              Book consultation with specialist
                             </button>
                           </div>
                         </div>
@@ -1175,6 +1253,24 @@ const PatientDashboard = () => {
                   {actionLoading ? 'Saving...' : 'Save Profile Changes'}
                 </button>
               </form>
+
+              {/* Danger Zone */}
+              <div className="mt-12 pt-8 border-t border-slate-900">
+                <div className="p-6 rounded-2xl bg-red-500/5 border border-red-500/20">
+                  <h4 className="text-sm font-bold text-red-400 uppercase tracking-wider font-mono">⚠️ Security Danger Zone</h4>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Permanently delete your VeloCura health account, past prescriptions, medical history records, and verified consultations. This action is absolute and cannot be undone.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    disabled={actionLoading}
+                    className="mt-4 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 px-5 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer disabled:opacity-40"
+                  >
+                    {actionLoading ? 'Deleting Account...' : 'Permanently Delete My Account'}
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

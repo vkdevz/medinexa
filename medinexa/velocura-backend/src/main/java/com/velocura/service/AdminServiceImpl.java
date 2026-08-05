@@ -25,6 +25,12 @@ public class AdminServiceImpl implements AdminService {
     private final DoctorRepository doctorRepository;
     private final AppointmentRepository appointmentRepository;
     private final NotificationService notificationService;
+    
+    @Autowired
+    private com.velocura.repository.PrescriptionRepository prescriptionRepository;
+
+    @Autowired
+    private com.velocura.repository.MedicalHistoryRepository medicalHistoryRepository;
 
     @Autowired
     public AdminServiceImpl(
@@ -102,5 +108,55 @@ public class AdminServiceImpl implements AdminService {
                         .isVerified(d.isVerified())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void toggleUserActive(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        if (user.getRole() == com.velocura.model.Role.ADMIN) {
+            throw new IllegalArgumentException("Administrative accounts cannot be deactivated.");
+        }
+        user.setActive(!user.isActive());
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        if (user.getRole() == com.velocura.model.Role.ADMIN) {
+            throw new IllegalArgumentException("Administrative accounts cannot be deleted.");
+        }
+
+        // Delete cascade: appointments
+        List<com.velocura.model.Appointment> patientAppts = appointmentRepository.findByPatientId(userId);
+        if (patientAppts != null) appointmentRepository.deleteAll(patientAppts);
+        
+        List<com.velocura.model.Appointment> doctorAppts = appointmentRepository.findByDoctorId(userId);
+        if (doctorAppts != null) appointmentRepository.deleteAll(doctorAppts);
+
+        // Delete cascade: prescriptions
+        List<com.velocura.model.Prescription> patientRx = prescriptionRepository.findByPatientIdOrderByIssuedAtDesc(userId);
+        if (patientRx != null) prescriptionRepository.deleteAll(patientRx);
+
+        List<com.velocura.model.Prescription> doctorRx = prescriptionRepository.findByDoctorIdOrderByIssuedAtDesc(userId);
+        if (doctorRx != null) prescriptionRepository.deleteAll(doctorRx);
+
+        // Delete cascade: medical histories
+        List<com.velocura.model.MedicalHistory> history = medicalHistoryRepository.findByPatientIdOrderByRecordedAtDesc(userId);
+        if (history != null) medicalHistoryRepository.deleteAll(history);
+
+        // Delete profiles
+        if (patientRepository.existsById(userId)) {
+            patientRepository.deleteById(userId);
+        }
+        if (doctorRepository.existsById(userId)) {
+            doctorRepository.deleteById(userId);
+        }
+
+        userRepository.delete(user);
     }
 }

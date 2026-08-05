@@ -40,4 +40,16 @@ public class AdminController {
     public ResponseEntity<List<com.velocura.dto.DoctorProfileResponse>> getUnverifiedDoctors() {
         return ResponseEntity.ok(adminService.getUnverifiedDoctors());
     }
+
+    @PutMapping("/users/{id}/toggle-active")
+    public ResponseEntity<String> toggleUserActive(@PathVariable Long id) {
+        adminService.toggleUserActive(id);
+        return ResponseEntity.ok("User active status updated successfully!");
+    }
+
+    @DeleteMapping("/users/{id}")
+    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+        adminService.deleteUser(id);
+        return ResponseEntity.ok("User deleted successfully!");
+    }
 }
