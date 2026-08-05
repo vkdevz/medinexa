@@ -61,6 +61,13 @@
 			<optional>true</optional>
 		</dependency>
 
+		<!-- PDF Parsing for Lab Report AI Analysis -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.2</version>
+		</dependency>
+
 		<!-- JSON Web Token (JWT) -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>

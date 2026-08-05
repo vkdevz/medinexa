@@ -281,4 +281,75 @@ public class GeminiAiService {
                 .suggestedOtc(suggestedOtc)
                 .build();
     }
+
+    public String analyzeLabReport(String textContent) {
+        String cleanKey = apiKey != null ? apiKey.trim() : "";
+        if (cleanKey.startsWith("${") && cleanKey.endsWith("}")) {
+            cleanKey = "";
+        }
+
+        if (!cleanKey.isEmpty() && !cleanKey.equalsIgnoreCase("null") && cleanKey.startsWith("AIzaSy")) {
+            try {
+                String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + cleanKey;
+
+                String systemInstruction = "You are VeloCura Lab Report Analyzer. " +
+                        "Your job is to analyze the patient's lab report / blood test text. " +
+                        "Identify any biomarkers that are high, low, or out of normal reference ranges. " +
+                        "Explain what these values mean in clear, friendly, and non-alarmist plain language. " +
+                        "Suggest positive lifestyle changes, dietary habits, or precautions they can take. " +
+                        "Provide a formatted report in clean HTML (e.g. using Tailwind-friendly CSS classes or structured headers) " +
+                        "that can be directly rendered in the dashboard. " +
+                        "CRITICAL: Always append a clear medical disclaimer in bold stating that this analysis is AI-generated, " +
+                        "is not a official diagnosis, and the patient should discuss it with their physician.";
+
+                Map<String, Object> contentsPart = HashMap.newHashMap(1);
+                contentsPart.put("text", "Lab Report Text:\n\"\"\"\n" + textContent + "\n\"\"\"\n\nProduce clinical analysis:");
+
+                Map<String, Object> parts = HashMap.newHashMap(1);
+                parts.put("parts", List.of(contentsPart));
+
+                Map<String, Object> systemPart = HashMap.newHashMap(1);
+                systemPart.put("parts", List.of(Map.of("text", systemInstruction)));
+
+                Map<String, Object> requestBody = HashMap.newHashMap(2);
+                requestBody.put("contents", List.of(parts));
+                requestBody.put("systemInstruction", systemPart);
+
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
+                logger.info("Executing Google Gemini Lab Report Analysis call...");
+                ResponseEntity<String> responseEntity = restTemplate.postForEntity(url, entity, String.class);
+
+                if (responseEntity.getStatusCode() == HttpStatus.OK && responseEntity.getBody() != null) {
+                    JsonNode root = objectMapper.readTree(responseEntity.getBody());
+                    JsonNode candidateTextNode = root.path("candidates")
+                            .path(0)
+                            .path("content")
+                            .path("parts")
+                            .path(0)
+                            .path("text");
+
+                    if (!candidateTextNode.isMissingNode()) {
+                        return candidateTextNode.asText().trim();
+                    }
+                }
+            } catch (Throwable t) {
+                logger.error("Gemini Lab Report analysis failed: {}", t.getMessage());
+            }
+        }
+
+        // Fallback analysis if Gemini is unavailable
+        return "<div class='space-y-4'>" +
+                "<h3 class='text-lg font-bold text-amber-400'>Clinical Analysis Report (Local Fallback Engine)</h3>" +
+                "<p class='text-sm text-slate-300'>The live Gemini AI analyzer could not be reached. However, we have parsed your report text.</p>" +
+                "<div class='p-4 bg-slate-900 rounded-xl font-mono text-xs text-slate-400 max-h-[150px] overflow-y-auto'>" +
+                textContent.replace("\n", "<br/>") +
+                "</div>" +
+                "<p class='text-sm text-slate-300'><strong>Clinical Advice:</strong> Please discuss these test results directly with your primary care provider or specialist to receive an accurate interpretation of your biomarkers.</p>" +
+                "<p class='text-xs text-red-400 font-bold'>⚠️ DISCLAIMER: This is an automated local fallback analysis. It does not replace professional medical advice.</p>" +
+                "</div>";
+    }
 }

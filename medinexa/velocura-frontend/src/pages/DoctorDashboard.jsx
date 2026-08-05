@@ -46,6 +46,17 @@ const DoctorDashboard = () => {
   const [patientTimeline, setPatientTimeline] = useState([]);
   const [passportLoading, setPassportLoading] = useState(false);
 
+  const handleJoinVideoCall = (a) => {
+    const drName = `Dr. ${profile?.firstName || user?.firstName || ''} ${profile?.lastName || user?.lastName || ''}`;
+    setActiveVideoSession({
+      roomName: `velocura-room-${a.appointmentId}`,
+      userName: drName,
+      patientId: a.patientId
+    });
+    api.post(`/api/consultations/ring?appointmentId=${a.appointmentId}&roomName=velocura-room-${a.appointmentId}&doctorName=${drName}&patientId=${a.patientId}`)
+      .catch(err => console.error("Error sending ring notification:", err));
+  };
+
   const handleStartConsultation = async (appt) => {
     setConsultationAppt(appt);
     setPatientAllergies('');
@@ -645,10 +656,7 @@ const DoctorDashboard = () => {
                                 <div className="inline-flex gap-2">
                                   {a.status === 'CONFIRMED' && (
                                     <button
-                                      onClick={() => setActiveVideoSession({
-                                        roomName: `velocura-room-${a.appointmentId}`,
-                                        userName: `Dr. ${profile?.firstName} ${profile?.lastName}`
-                                      })}
+                                      onClick={() => handleJoinVideoCall(a)}
                                       className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition-colors duration-200 cursor-pointer"
                                     >
                                       Join Call
@@ -775,7 +783,13 @@ const DoctorDashboard = () => {
         <TelehealthRoom
           roomName={activeVideoSession.roomName}
           userName={activeVideoSession.userName}
-          onClose={() => setActiveVideoSession(null)}
+          onClose={() => {
+            if (activeVideoSession.patientId) {
+              api.post(`/api/consultations/hangup?patientId=${activeVideoSession.patientId}`)
+                .catch(err => console.error("Error hanging up call:", err));
+            }
+            setActiveVideoSession(null);
+          }}
         />
       )}
 

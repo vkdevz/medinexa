@@ -3,6 +3,105 @@ import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import TelehealthRoom from '../components/TelehealthRoom';
 
+const VitalsChart = ({ data }) => {
+  if (!data || data.length === 0) return null;
+
+  // Take the last 7 entries to keep the chart clean
+  const chartData = [...data].slice(-7);
+
+  const width = 500;
+  const height = 200;
+  const padding = 30;
+
+  // Find min/max values for scaling
+  const allValues = chartData.flatMap(v => [v.systolic, v.diastolic, v.bloodSugar]);
+  const maxValue = Math.max(...allValues, 140);
+  const minValue = Math.min(...allValues, 60);
+  const valueRange = maxValue - minValue || 1;
+
+  const pointsSystolic = [];
+  const pointsDiastolic = [];
+  const pointsSugar = [];
+
+  const stepX = chartData.length > 1 ? (width - padding * 2) / (chartData.length - 1) : 0;
+
+  chartData.forEach((v, index) => {
+    const x = padding + index * stepX;
+    
+    // Scale y coordinates (invert since SVG y increases downwards)
+    const ySys = height - padding - ((v.systolic - minValue) / valueRange) * (height - padding * 2);
+    const yDia = height - padding - ((v.diastolic - minValue) / valueRange) * (height - padding * 2);
+    const ySug = height - padding - ((v.bloodSugar - minValue) / valueRange) * (height - padding * 2);
+
+    pointsSystolic.push({ x, y: ySys });
+    pointsDiastolic.push({ x, y: yDia });
+    pointsSugar.push({ x, y: ySug });
+  });
+
+  const getPathD = (pts) => {
+    if (pts.length === 0) return '';
+    if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y} L ${pts[0].x} ${pts[0].y}`;
+    return pts.reduce((acc, p, idx) => idx === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`, '');
+  };
+
+  return (
+    <div className="mb-8 p-6 rounded-2xl bg-slate-950/40 border border-slate-900">
+      <div className="flex justify-between items-center mb-4">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 font-mono">📈 Vitals Trend Analysis</h4>
+        <div className="flex gap-4 text-[10px] font-mono">
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-rose-500 rounded-full inline-block"></span>Systolic</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-sky-400 rounded-full inline-block"></span>Diastolic</span>
+          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 bg-emerald-400 rounded-full inline-block"></span>Sugar</span>
+        </div>
+      </div>
+      <div className="relative w-full h-[200px]">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+          {/* Horizontal Grid lines */}
+          {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
+            const y = padding + ratio * (height - padding * 2);
+            const val = Math.round(maxValue - ratio * valueRange);
+            return (
+              <g key={i}>
+                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#1e293b" strokeDasharray="4 4" />
+                <text x={padding - 5} y={y + 4} fill="#64748b" className="text-[9px] font-mono text-right" textAnchor="end">{val}</text>
+              </g>
+            );
+          })}
+
+          {/* X Axis Labels */}
+          {chartData.map((v, i) => {
+            const x = stepX ? padding + i * stepX : padding;
+            const label = v.timestamp.split(',')[0] || '';
+            return (
+              <text key={i} x={x} y={height - 10} fill="#64748b" className="text-[9px] font-mono" textAnchor="middle">{label}</text>
+            );
+          })}
+
+          {/* Lines */}
+          {chartData.length > 1 && (
+            <>
+              <path d={getPathD(pointsSystolic)} fill="none" stroke="#f43f5e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={getPathD(pointsDiastolic)} fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={getPathD(pointsSugar)} fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </>
+          )}
+
+          {/* Points */}
+          {pointsSystolic.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="4" fill="#f43f5e" />
+          ))}
+          {pointsDiastolic.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="4" fill="#38bdf8" />
+          ))}
+          {pointsSugar.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="4" fill="#34d399" />
+          ))}
+        </svg>
+      </div>
+    </div>
+  );
+};
+
 const PatientDashboard = () => {
   const { user, logout } = useContext(AuthContext);
   const [activeTab, setActiveTab] = useState('overview');
@@ -42,6 +141,12 @@ const PatientDashboard = () => {
   const [deleteError, setDeleteError] = useState('');
   const [deleteSuccess, setDeleteSuccess] = useState('');
 
+  // Lab Report Analyzer states
+  const [reportFile, setReportFile] = useState(null);
+  const [reportAnalysis, setReportAnalysis] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analyzerError, setAnalyzerError] = useState('');
+
   // ==========================================
   // STARTUP FEATURE STATES: AI CHAT & VITALS
   // ==========================================
@@ -62,7 +167,62 @@ const PatientDashboard = () => {
     }
   ]);
   const [chatLoading, setChatLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  const startSpeechRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice-to-Text speech recognition is not supported in this browser. Please try Google Chrome or Safari.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const speechToText = event.results[0][0].transcript;
+      setChatInput(prev => prev ? prev + " " + speechToText : speechToText);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
+
   const [activeVideoSession, setActiveVideoSession] = useState(null);
+  const [incomingCall, setIncomingCall] = useState(null);
+
+  useEffect(() => {
+    const callPollInterval = setInterval(async () => {
+      if (activeVideoSession) return;
+      try {
+        const res = await api.get('/api/consultations/active');
+        if (res.data && res.data.roomName) {
+          setIncomingCall(res.data);
+        } else {
+          setIncomingCall(null);
+        }
+      } catch (err) {
+        // Suppress print logs during background polling
+      }
+    }, 3000);
+
+    return () => clearInterval(callPollInterval);
+  }, [activeVideoSession]);
 
   // Health Passport States
   const [allergies, setAllergies] = useState('');
@@ -239,6 +399,95 @@ const PatientDashboard = () => {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handlePrintPrescription = (p) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert("Please allow popups to print your prescription sheet.");
+      return;
+    }
+
+    const htmlContent = `
+      <html>
+        <head>
+          <title>Prescription Receipt - ${p.id}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Arial, sans-serif; padding: 40px; color: #1e293b; background-color: #ffffff; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f766e; padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { font-size: 24px; font-weight: 800; color: #0f766e; letter-spacing: -0.025em; }
+            .logo-sub { color: #0d9488; }
+            .letterhead { text-align: right; font-size: 11px; color: #64748b; line-height: 1.5; }
+            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px; font-size: 13px; }
+            .info-title { font-weight: 700; color: #475569; font-size: 11px; text-transform: uppercase; margin-bottom: 5px; }
+            .rx-section { border: 1px solid #e2e8f0; border-radius: 12px; padding: 25px; margin-bottom: 40px; background-color: #fafafa; }
+            .rx-symbol { font-size: 32px; font-weight: 700; color: #0f766e; font-family: Georgia, serif; margin-bottom: 15px; }
+            .rx-med { font-size: 18px; font-weight: 700; color: #0f766e; margin-bottom: 10px; }
+            .rx-detail { font-size: 14px; margin-bottom: 8px; line-height: 1.6; }
+            .footer { border-top: 1px solid #e2e8f0; padding-top: 20px; margin-top: 50px; display: flex; justify-content: space-between; align-items: flex-end; }
+            .footer-info { font-size: 10px; color: #94a3b8; max-width: 300px; line-height: 1.4; }
+            .sig-area { text-align: right; width: 200px; }
+            .sig-line { border-top: 1px solid #cbd5e1; margin-top: 50px; font-size: 11px; font-weight: 700; color: #475569; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="logo">VeloCura<span class="logo-sub">Healthcare</span></div>
+              <div style="font-size: 12px; color: #0f766e; font-weight: 600; margin-top: 4px;">DIGITAL CLINICAL RX SLIP</div>
+            </div>
+            <div class="letterhead">
+              <strong>VeloCura Clinical Hub Inc.</strong><br/>
+              100 Medical Plaza, Suite 400<br/>
+              Support: clinic@velocura.com<br/>
+              Web: www.velocura.com
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div>
+              <div class="info-title">Patient Profile</div>
+              <strong>${profile?.firstName || user?.firstName || 'Patient'} ${profile?.lastName || user?.lastName || ''}</strong><br/>
+              Sex: ${profile?.gender || 'Not Specified'}<br/>
+              Blood Group: ${profile?.bloodGroup || 'Not Specified'}
+            </div>
+            <div style="text-align: right;">
+              <div class="info-title">Prescribing Practitioner</div>
+              <strong>Dr. ${p.doctorName}</strong><br/>
+              Specialization: ${p.doctorSpecialization}<br/>
+              Issue Date: ${new Date(p.issuedAt).toLocaleDateString()}
+            </div>
+          </div>
+
+          <div class="rx-section">
+            <div class="rx-symbol">Rₓ</div>
+            <div class="rx-med">${p.medication}</div>
+            <div class="rx-detail"><strong>Dosage & Frequency:</strong> ${p.dosage}</div>
+            \${p.instructions ? `<div class="rx-detail"><strong>Directions/Instructions:</strong> \${p.instructions}</div>` : ''}
+          </div>
+
+          <div class="footer">
+            <div class="footer-info">
+              ⚠️ <strong>Patient Instruction Disclaimer:</strong> This digital prescription is officially validated. If you notice any hypersensitivity or adverse side effects, suspend medication immediately and contact support.
+            </div>
+            <div class="sig-area">
+              <div class="sig-line">Dr. \${p.doctorName} (Authorized Sign)</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
   };
 
   const handleCancelAppointment = async (apptId) => {
@@ -495,6 +744,19 @@ const PatientDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
               <span>Vitals Logger</span>
+            </button>
+
+            {/* LAB REPORT ANALYZER TAB BUTTON */}
+            <button
+              onClick={() => setActiveTab('report-analyzer')}
+              className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer ${
+                activeTab === 'report-analyzer' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50 border border-transparent'
+              }`}
+            >
+              <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Lab Analyzer</span>
             </button>
 
             <button
@@ -1033,6 +1295,20 @@ const PatientDashboard = () => {
 
               {/* Chat Input form */}
               <form onSubmit={handleSendSymptomQuery} className="flex gap-3 border-t border-slate-900 pt-4">
+                <button
+                  type="button"
+                  onClick={startSpeechRecognition}
+                  className={`px-4 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${
+                    isListening 
+                      ? 'bg-red-500/20 text-red-400 border-red-500/35 animate-pulse' 
+                      : 'bg-slate-950 border-slate-800 text-teal-400 hover:border-teal-500/40'
+                  }`}
+                  title="Speak symptoms"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </button>
                 <input
                   type="text"
                   required
@@ -1130,6 +1406,7 @@ const PatientDashboard = () => {
               {/* History list column */}
               <div className="glass-card rounded-3xl p-6 md:col-span-2">
                 <h3 className="text-base font-bold text-white mb-4">Historical Health Metrics Log</h3>
+                <VitalsChart data={vitalsList} />
                 <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full text-left text-sm text-slate-400">
                     <thead className="text-xs font-bold uppercase tracking-wider text-slate-500 border-b border-slate-900">
@@ -1489,6 +1766,100 @@ const PatientDashboard = () => {
             </div>
           )}
 
+          {activeTab === 'report-analyzer' && (
+            <div className="glass-card rounded-3xl p-8 max-w-3xl">
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-indigo-400">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white">Clinical Lab Report Analyzer</h3>
+                  <p className="text-xs text-slate-400 mt-1">Upload a PDF copy of your blood test, lipid panel, or diagnostic reports to generate an instant patient-friendly interpretation using Gemini AI.</p>
+                </div>
+              </div>
+
+              {analyzerError && (
+                <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-3">
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{analyzerError}</span>
+                </div>
+              )}
+
+              <div className="p-8 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-3xl transition-all duration-300 bg-slate-950/20 flex flex-col items-center justify-center text-center">
+                <input
+                  type="file"
+                  id="report-file-input"
+                  accept="application/pdf,text/plain"
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setReportFile(e.target.files[0]);
+                      setAnalyzerError('');
+                    }
+                  }}
+                />
+                
+                <label htmlFor="report-file-input" className="cursor-pointer group flex flex-col items-center">
+                  <div className="w-16 h-16 bg-slate-900 border border-slate-800 group-hover:border-indigo-500/35 rounded-2xl flex items-center justify-center text-slate-400 group-hover:text-indigo-400 mb-4 transition-all">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                  </div>
+                  <span className="text-sm text-slate-200 font-semibold group-hover:text-indigo-400 transition-colors">
+                    {reportFile ? reportFile.name : 'Choose PDF or Text Lab Report'}
+                  </span>
+                  <span className="text-xs text-slate-500 mt-1">Maximum file size: 5MB</span>
+                </label>
+
+                {reportFile && (
+                  <button
+                    onClick={async () => {
+                      if (!reportFile) return;
+                      setAnalyzing(true);
+                      setAnalyzerError('');
+                      setReportAnalysis('');
+                      const formData = new FormData();
+                      formData.append('file', reportFile);
+                      try {
+                        const res = await api.post('/api/patient/analyze-report', formData, {
+                          headers: { 'Content-Type': 'multipart/form-data' }
+                        });
+                        setReportAnalysis(res.data.analysis);
+                      } catch (err) {
+                        console.error(err);
+                        setAnalyzerError(err.response?.data?.message || 'Failed to analyze lab report. Please make sure file format is correct.');
+                      } finally {
+                        setAnalyzing(false);
+                      }
+                    }}
+                    disabled={analyzing}
+                    className="mt-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-lg hover:shadow-indigo-500/10 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 transition-all duration-200 text-xs cursor-pointer"
+                  >
+                    {analyzing ? 'Extracting & Analyzing Report...' : 'Analyze Report Now'}
+                  </button>
+                )}
+              </div>
+
+              {/* Analysis Result Output */}
+              {reportAnalysis && (
+                <div className="mt-8 pt-8 border-t border-slate-900">
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono mb-4 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full inline-block animate-pulse"></span>
+                    Gemini AI Clinical Evaluation
+                  </h4>
+                  <div 
+                    className="p-6 rounded-2xl bg-slate-950/40 border border-slate-900 text-sm text-slate-300 leading-relaxed space-y-4 html-content"
+                    dangerouslySetInnerHTML={{ __html: reportAnalysis }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'prescriptions' && (
             <div className="glass-card rounded-3xl p-6">
               <h3 className="text-xl font-bold text-white mb-6">Digital Prescriptions Directory</h3>
@@ -1522,6 +1893,17 @@ const PatientDashboard = () => {
                               <strong className="text-slate-300 font-mono">Instructions:</strong> {p.instructions}
                             </p>
                           )}
+                          <div className="pt-2">
+                            <button
+                              onClick={() => handlePrintPrescription(p)}
+                              className="w-full bg-slate-900 hover:bg-slate-800 text-teal-400 hover:text-teal-300 border border-slate-800 hover:border-teal-500/35 font-bold py-2 rounded-xl text-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                              </svg>
+                              Print Prescription Slip
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1540,6 +1922,56 @@ const PatientDashboard = () => {
           userName={activeVideoSession.userName}
           onClose={() => setActiveVideoSession(null)}
         />
+      )}
+
+      {/* Real-time incoming call ringing popup */}
+      {incomingCall && (
+        <div className="fixed bottom-6 right-6 z-50 w-full max-w-sm glass-card border border-teal-500/30 rounded-3xl p-6 shadow-2xl shadow-teal-500/10 animate-bounce">
+          <div className="flex items-center gap-4">
+            <div className="relative flex items-center justify-center">
+              <span className="absolute inline-flex h-12 w-12 rounded-full bg-teal-500 opacity-75 animate-ping"></span>
+              <div className="w-12 h-12 rounded-2xl bg-teal-500/20 text-teal-400 border border-teal-500/35 flex items-center justify-center relative">
+                <svg className="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-bold text-white">Incoming Consultation Call</h4>
+              <p className="text-xs text-teal-400 font-semibold mt-0.5">{incomingCall.doctorName}</p>
+              <p className="text-[10px] text-slate-500 font-mono mt-1">TELEHEALTH VIDEO RINGING SESSION</p>
+            </div>
+          </div>
+          <div className="flex gap-3 mt-5">
+            <button
+              onClick={() => {
+                setActiveVideoSession({
+                  roomName: incomingCall.roomName,
+                  userName: `${profile?.firstName || user?.firstName || 'Patient'} ${profile?.lastName || user?.lastName || ''}`
+                });
+                setIncomingCall(null);
+              }}
+              className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2 rounded-xl text-xs transition-colors duration-200 cursor-pointer text-center"
+            >
+              Accept Call
+            </button>
+            <button
+              onClick={async () => {
+                if (incomingCall.patientId) {
+                  try {
+                    await api.post(`/api/consultations/hangup?patientId=${incomingCall.patientId}`);
+                  } catch (err) {
+                    console.error("Error declining call:", err);
+                  }
+                }
+                setIncomingCall(null);
+              }}
+              className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 py-2 rounded-xl text-xs transition-colors duration-200 cursor-pointer text-center"
+            >
+              Decline
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Account Deletion OTP Confirmation Modal Overlay */}
