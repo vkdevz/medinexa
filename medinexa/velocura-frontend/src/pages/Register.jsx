@@ -31,6 +31,13 @@ const Register = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // OTP Verification hooks
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  const [cachedRegisterData, setCachedRegisterData] = useState(null);
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -88,20 +95,57 @@ const Register = () => {
 
     setLoading(true);
     try {
-      await api.post('/api/auth/register', registerData);
-      setSuccess('Registration successful! Redirecting to login...');
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      // Step 1: Request OTP generation
+      await api.post('/api/auth/otp/send', { email });
+      setCachedRegisterData(registerData);
+      setOtpError('');
+      setOtpCode('');
+      setShowOtpModal(true);
     } catch (err) {
       console.error(err);
       if (err.response && err.response.data && typeof err.response.data === 'string') {
         setError(err.response.data);
       } else {
-        setError('Registration failed. Please check parameters and try again.');
+        setError('Failed to dispatch security code. Please check parameters and try again.');
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpVerify = async (e) => {
+    e.preventDefault();
+    if (!otpCode.trim()) {
+      setOtpError('Please input the 6-digit verification code.');
+      return;
+    }
+
+    setOtpLoading(true);
+    setOtpError('');
+
+    try {
+      // Step 2: Match OTP via verification REST endpoint
+      await api.post('/api/auth/otp/verify', { email, code: otpCode });
+      
+      // Step 3: Complete actual user profile persistence
+      await api.post('/api/auth/register', cachedRegisterData);
+      
+      setSuccess('Account verified and created successfully! Redirecting to login...');
+      setShowOtpModal(false);
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      if (err.response && err.response.data && err.response.data.message) {
+        setOtpError(err.response.data.message);
+      } else if (err.response && err.response.data && typeof err.response.data === 'string') {
+        setOtpError(err.response.data);
+      } else {
+        setOtpError('Invalid verification code. Please check and try again.');
+      }
+    } finally {
+      setOtpLoading(false);
     }
   };
 
@@ -421,6 +465,81 @@ const Register = () => {
         </div>
 
       </div>
+
+      {/* OTP Verification Modal Overlay */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl relative">
+            
+            {/* Shield SVG Decoration */}
+            <div className="mx-auto w-12 h-12 bg-cyan-500/10 border border-cyan-500/25 rounded-2xl flex items-center justify-center mb-6 text-cyan-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+
+            <h3 className="text-xl font-bold text-center text-white">Security OTP Verification</h3>
+            <p className="text-xs text-slate-400 text-center mt-2 leading-relaxed">
+              We've dispatched a 6-digit confirmation key to <span className="text-cyan-400 font-medium font-mono">{email}</span>. Please input it below to authorize.
+            </p>
+
+            <form onSubmit={handleOtpVerify} className="mt-6 space-y-4">
+              {otpError && (
+                <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>{otpError}</span>
+                </div>
+              )}
+
+              <div>
+                <input
+                  type="text"
+                  maxLength="6"
+                  required
+                  placeholder="000000"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-center text-xl tracking-[0.4em] font-extrabold font-mono text-white focus:outline-none focus:border-cyan-500/50 transition-all duration-200"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
+                />
+              </div>
+
+              <div className="text-center">
+                <span className="text-[10px] text-slate-500 font-mono">
+                  💡 Free Testing Note: Retrieve code directly from Spring Boot logs.
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={otpLoading}
+                className="w-full bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold py-3.5 rounded-xl hover:shadow-lg hover:shadow-cyan-500/15 transition-all duration-200 text-sm cursor-pointer disabled:opacity-40"
+              >
+                {otpLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin mr-2" />
+                    <span>Verifying...</span>
+                  </div>
+                ) : (
+                  <span>Verify & Create Account</span>
+                )}
+              </button>
+
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="text-xs text-slate-500 hover:text-slate-400 font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

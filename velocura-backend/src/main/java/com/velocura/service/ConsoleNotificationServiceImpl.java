@@ -42,4 +42,14 @@ public class ConsoleNotificationServiceImpl implements NotificationService {
         logger.info("BODY: Hello Dr. {}, your credentials have been verified by the Administrator. Your portal profile is now active.", name);
         logger.info("------------------------------------------------------------");
     }
+
+    @Override
+    public void sendOtpEmail(String toEmail, String code) {
+        logger.info("------------------------------------------------------------");
+        logger.info("SMTP EMAIL OUTBOX [Security OTP Verification]");
+        logger.info("TO: {}", toEmail);
+        logger.info("SUBJECT: Your VeloCura Verification Code");
+        logger.info("BODY: Use OTP code {} to complete your sign-in / registration verification. Expiries in 5 minutes.", code);
+        logger.info("------------------------------------------------------------");
+    }
 }

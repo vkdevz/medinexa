@@ -25,6 +25,7 @@ function LandingPage() {
   const [anonymousChatCount, setAnonymousChatCount] = useState(0);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const [activeFaq, setActiveFaq] = useState(null);
 
   useEffect(() => {
     const count = parseInt(localStorage.getItem('anonymousChatCount') || '0');
@@ -489,16 +490,174 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-slate-900 bg-slate-950 py-10 relative z-10 text-center">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-slate-500 gap-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-slate-400 font-bold">VeloCura</span>
-            <span>|</span>
-            <span>AI Digital Clinic</span>
+      {/* How it Works Section */}
+      <section id="workflow" className="max-w-7xl mx-auto px-6 py-20 border-t border-slate-900 w-full relative z-10">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <span className="text-xs text-cyan-400 font-bold uppercase tracking-widest font-mono">Simple Care Pathway</span>
+          <h2 className="text-3xl font-bold tracking-tight mt-2">How VeloCura Works</h2>
+          <p className="text-slate-400 mt-3">From symptoms identification to direct specialist clinical resolution in three steps.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 relative">
+          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-500/20 via-teal-500/20 to-transparent -translate-y-1/2 hidden md:block z-0" />
+          
+          <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-8 relative z-10 hover:border-slate-800 transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 font-bold font-mono text-lg mb-6">01</div>
+            <h4 className="text-lg font-bold text-white mb-2">Symptom Input</h4>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Describe your symptoms in natural plain language. VeloCura AI triage parses details instantly.
+            </p>
           </div>
+
+          <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-8 relative z-10 hover:border-slate-800 transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl bg-teal-500/10 border border-teal-500/25 flex items-center justify-center text-teal-400 font-bold font-mono text-lg mb-6">02</div>
+            <h4 className="text-lg font-bold text-white mb-2">Triage Routing</h4>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Receive clinical risk tiering, suggested specialists, immediate home precautions, and OTC salt guidance.
+            </p>
+          </div>
+
+          <div className="bg-slate-900/40 border border-slate-900 rounded-2xl p-8 relative z-10 hover:border-slate-800 transition-all duration-300">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 font-bold font-mono text-lg mb-6">03</div>
+            <h4 className="text-lg font-bold text-white mb-2">Virtual Consult</h4>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Schedule direct WebRTC peer-to-peer HD video appointments and download secure signed e-prescriptions.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Emergency Advisory Banner */}
+      <section className="max-w-7xl mx-auto px-6 py-6 w-full relative z-10">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-red-500/10 rounded-xl text-red-400">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white">Emergency Warning Advisory</h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                If you are experiencing severe chest pressure, shortness of breath, sudden numbness, or speech difficulties, please call emergency services (911/112) immediately.
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-mono bg-red-500/10 text-red-400 px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+            Clinical Safety Protocol
+          </span>
+        </div>
+      </section>
+
+      {/* FAQ Accordion Section */}
+      <section id="faq" className="max-w-4xl mx-auto px-6 py-20 w-full relative z-10">
+        <div className="text-center mb-12">
+          <span className="text-xs text-cyan-400 font-bold uppercase tracking-widest font-mono">Common Queries</span>
+          <h2 className="text-3xl font-bold tracking-tight mt-2">Frequently Asked Questions</h2>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            {
+              q: "Is the AI Triage Advisor a substitute for real medical care?",
+              a: "No. VeloCura AI Triage is a screening assistant tool designed to classify clinical risk levels and suggest specialties. It does not replace certified professional diagnostics. Always consult with verified medical professionals."
+            },
+            {
+              q: "How secure is my vital logging and health record details?",
+              a: "We adhere strictly to medical privacy guidelines. All communications use TLS encryption, and personal identification records are secured in role-permission locked databases."
+            },
+            {
+              q: "Can I host virtual consultations for free?",
+              a: "Yes. VeloCura supports built-in WebRTC peer-to-peer direct audio/video streaming, allowing you to connect with doctors without paying middleman service provider fees."
+            },
+            {
+              q: "How does the Doctor verification process work?",
+              a: "When a doctor registers, their credentials are locked. Only platform administrators can review their certifications in the Admin Console and approve their active status."
+            }
+          ].map((item, index) => (
+            <div key={index} className="border border-slate-900 rounded-xl bg-slate-900/20 overflow-hidden">
+              <button
+                onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                className="w-full px-6 py-4 flex items-center justify-between text-left font-medium text-sm text-white hover:bg-slate-900/50 transition-all duration-200"
+              >
+                <span>{item.q}</span>
+                <svg className={`w-5 h-5 text-slate-400 transform transition-transform duration-200 ${activeFaq === index ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {activeFaq === index && (
+                <div className="px-6 pb-5 pt-2 text-xs text-slate-400 leading-relaxed border-t border-slate-950 bg-slate-950/20">
+                  {item.a}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Corporate Professional Footer */}
+      <footer className="border-t border-slate-900 bg-slate-950 pt-16 pb-12 relative z-10">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 text-sm mb-12">
+          
+          {/* Brand Info */}
+          <div className="flex flex-col space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-teal-500 flex items-center justify-center">
+                <svg className="w-5 h-5 text-slate-950 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <span className="text-lg font-bold text-white">VeloCura</span>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Bridging clinical AI symptom intelligence with direct virtual consultation solutions. Committed to raising digital healthcare availability.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <span className="text-[9px] font-bold font-mono uppercase bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded border border-cyan-500/10">HIPAA Compliant</span>
+              <span className="text-[9px] font-bold font-mono uppercase bg-teal-500/10 text-teal-400 px-2 py-0.5 rounded border border-teal-500/10">GDPR Ready</span>
+            </div>
+          </div>
+
+          {/* Product Links */}
+          <div className="flex flex-col space-y-3">
+            <h5 className="font-bold text-white tracking-wide uppercase text-xs">Ecosystem Services</h5>
+            <a href="#chatbot-section" className="text-xs text-slate-400 hover:text-white transition-colors duration-150">AI Symptom Triage</a>
+            <Link to="/register" className="text-xs text-slate-400 hover:text-white transition-colors duration-150">Doctor Consultations</Link>
+            <Link to="/login" className="text-xs text-slate-400 hover:text-white transition-colors duration-150">Vitals Monitoring Tracker</Link>
+            <Link to="/register" className="text-xs text-slate-400 hover:text-white transition-colors duration-150">Digital Health Passport</Link>
+          </div>
+
+          {/* Regulatory & Compliance */}
+          <div className="flex flex-col space-y-3">
+            <h5 className="font-bold text-white tracking-wide uppercase text-xs">Legal & Regulatory</h5>
+            <span className="text-xs text-slate-400 cursor-pointer hover:text-white">Privacy Protection Policy</span>
+            <span className="text-xs text-slate-400 cursor-pointer hover:text-white">Terms of Clinical Service</span>
+            <span className="text-xs text-slate-400 cursor-pointer hover:text-white">HIPAA Compliance Shield</span>
+            <span className="text-xs text-slate-400 cursor-pointer hover:text-white">Consent for Care Procedures</span>
+          </div>
+
+          {/* Corporate Headquarters */}
+          <div className="flex flex-col space-y-3">
+            <h5 className="font-bold text-white tracking-wide uppercase text-xs">Corporate Office</h5>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              VeloCura Health Technologies Inc.<br />
+              100 Digital Plaza Suite 450<br />
+              San Francisco, CA 94103
+            </p>
+            <p className="text-xs text-slate-500 pt-1 font-mono">
+              info@velocura.com
+            </p>
+          </div>
+
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="max-w-7xl mx-auto px-6 border-t border-slate-900 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-slate-500 gap-4">
           <div>
-            Built as a resume-grade Healthcare Assistant Startup Ecosystem • Java 21 & React
+            © {new Date().getFullYear()} VeloCura Health Technologies Inc. All rights reserved.
+          </div>
+          <div className="text-slate-600 font-mono text-[10px]">
+            Designed for clinical safety & startup excellence • v2.1.0-RC
           </div>
         </div>
       </footer>
