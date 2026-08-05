@@ -31,11 +31,12 @@ public class ConsoleNotificationServiceImpl implements NotificationService {
         if (mailSender != null && mailUsername != null && !mailUsername.trim().isEmpty()) {
             executorService.submit(() -> {
                 try {
-                    SimpleMailMessage message = new SimpleMailMessage();
-                    message.setFrom(mailUsername);
-                    message.setTo(toEmail);
-                    message.setSubject(subject);
-                    message.setText(body);
+                    jakarta.mail.internet.MimeMessage message = mailSender.createMimeMessage();
+                    org.springframework.mail.javamail.MimeMessageHelper helper = new org.springframework.mail.javamail.MimeMessageHelper(message, "UTF-8");
+                    helper.setFrom(new jakarta.mail.internet.InternetAddress(mailUsername, "VeloCura Healthcare"));
+                    helper.setTo(toEmail);
+                    helper.setSubject(subject);
+                    helper.setText(body);
                     mailSender.send(message);
                     logger.info("📬 REAL SMTP EMAIL SENT SUCCESSFULLY TO: {}", toEmail);
                 } catch (Exception e) {
