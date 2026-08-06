@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import java.util.Optional;
 
 @Component
 public class DatabaseSeeder implements CommandLineRunner {
@@ -32,7 +33,8 @@ public class DatabaseSeeder implements CommandLineRunner {
         String email = adminEmail != null ? adminEmail.trim() : "admin@velocura.com";
         String password = adminPassword != null ? adminPassword : "VeloCuraAdmin_#2026_SecureKey";
 
-        if (userRepository.findByEmail(email).isEmpty()) {
+        Optional<User> adminOpt = userRepository.findByEmail(email);
+        if (adminOpt.isEmpty()) {
             User admin = User.builder()
                     .email(email)
                     .password(passwordEncoder.encode(password))
@@ -47,6 +49,13 @@ public class DatabaseSeeder implements CommandLineRunner {
             System.out.println("Email: " + email);
             System.out.println("Password: " + password);
             System.out.println("--------------------------------------------------");
+        } else {
+            User admin = adminOpt.get();
+            admin.setActive(true);
+            admin.setDeleted(false);
+            admin.setPassword(passwordEncoder.encode(password));
+            userRepository.save(admin);
+            System.out.println("DATABASE SEEDER: Verified and updated Admin user status/password.");
         }
     }
 }
