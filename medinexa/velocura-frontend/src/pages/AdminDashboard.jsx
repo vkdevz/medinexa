@@ -59,13 +59,12 @@ const AdminDashboard = () => {
       // Let's look at `AdminService.java`. It can define:
       // `List<DoctorProfileResponse> getUnverifiedDoctors();`
       // And `AdminController.java` can map it as `GET /api/admin/doctors/unverified`.
-      // Let's add this backend API first, so that the admin can view and verify doctors from the list!
-      // Wait! Let's check: is this method needed?
-      // Yes! To display unverified doctors in the UI panel, the admin needs an endpoint to fetch them.
-      // Let's add `getUnverifiedDoctors` to `AdminService` and implement it!
+      // 4. Load unverified doctors
+      const docsRes = await api.get('/api/admin/doctors/unverified');
+      setUnverifiedDoctors(docsRes.data);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch admin dashboard statistics.');
+      setError('Failed to fetch admin dashboard statistics. Error: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -599,7 +598,7 @@ const AdminDashboard = () => {
                             <tr key={index} className="hover:bg-slate-900/10">
                               <td className="py-4 font-bold text-white">{o.email}</td>
                               <td className="py-4">
-                                {o.isRegisteredUser ? (
+                                {o.registeredUser ? (
                                   o.userName
                                 ) : (
                                   <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-mono uppercase tracking-wide">
