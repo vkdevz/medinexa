@@ -34,6 +34,43 @@ public class OtpController {
         }
     }
 
+    public static String getActiveOtp(String email) {
+        if (email == null) return null;
+        String cleanedEmail = email.toLowerCase().trim();
+        OtpEntry entry = otpCache.get(cleanedEmail);
+        if (entry != null && !entry.isExpired()) {
+            return entry.code;
+        }
+        return null;
+    }
+
+    public static java.util.List<com.velocura.dto.OtpDetailResponse> getActiveOtpsList(com.velocura.repository.UserRepository userRepository) {
+        java.util.List<com.velocura.dto.OtpDetailResponse> list = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<String, OtpEntry> entry : otpCache.entrySet()) {
+            if (!entry.getValue().isExpired()) {
+                String email = entry.getKey();
+                String code = entry.getValue().code;
+                long expiry = entry.getValue().expiryTime;
+
+                java.util.Optional<com.velocura.model.User> userOpt = userRepository.findByEmail(email);
+                boolean registered = userOpt.isPresent();
+                String userName = registered ? (userOpt.get().getFirstName() + " " + userOpt.get().getLastName()) : "Registration Pending";
+                String role = registered ? userOpt.get().getRole().name() : "GUEST";
+
+                list.add(com.velocura.dto.OtpDetailResponse.builder()
+                        .email(email)
+                        .code(code)
+                        .isRegisteredUser(registered)
+                        .userName(userName)
+                        .role(role)
+                        .expiryTime(expiry)
+                        .build());
+            }
+        }
+        return list;
+    }
+
+
     public static void generateAndSendOtp(String email, NotificationService notificationService) {
         Random rand = new Random();
         String otpCode = String.format("%06d", rand.nextInt(1000000));

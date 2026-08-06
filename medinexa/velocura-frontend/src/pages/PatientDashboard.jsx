@@ -463,7 +463,7 @@ const PatientDashboard = () => {
             <div class="rx-symbol">Rₓ</div>
             <div class="rx-med">${p.medication}</div>
             <div class="rx-detail"><strong>Dosage & Frequency:</strong> ${p.dosage}</div>
-            \${p.instructions ? `<div class="rx-detail"><strong>Directions/Instructions:</strong> \${p.instructions}</div>` : ''}
+            ${p.instructions ? `<div class="rx-detail"><strong>Directions/Instructions:</strong> ${p.instructions}</div>` : ''}
           </div>
 
           <div class="footer">
@@ -471,7 +471,7 @@ const PatientDashboard = () => {
               ⚠️ <strong>Patient Instruction Disclaimer:</strong> This digital prescription is officially validated. If you notice any hypersensitivity or adverse side effects, suspend medication immediately and contact support.
             </div>
             <div class="sig-area">
-              <div class="sig-line">Dr. \${p.doctorName} (Authorized Sign)</div>
+              <div class="sig-line">Dr. ${p.doctorName} (Authorized Sign)</div>
             </div>
           </div>
 

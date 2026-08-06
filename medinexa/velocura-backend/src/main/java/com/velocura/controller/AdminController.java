@@ -52,4 +52,9 @@ public class AdminController {
         adminService.deleteUser(id);
         return ResponseEntity.ok("User deleted successfully!");
     }
+
+    @GetMapping("/otps")
+    public ResponseEntity<List<com.velocura.dto.OtpDetailResponse>> getActiveOtps() {
+        return ResponseEntity.ok(adminService.getActiveOtps());
+    }
 }

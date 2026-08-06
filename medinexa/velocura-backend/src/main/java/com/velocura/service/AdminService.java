@@ -12,4 +12,5 @@ public interface AdminService {
     List<com.velocura.dto.DoctorProfileResponse> getUnverifiedDoctors();
     void toggleUserActive(Long userId);
     void deleteUser(Long userId);
+    List<com.velocura.dto.OtpDetailResponse> getActiveOtps();
 }

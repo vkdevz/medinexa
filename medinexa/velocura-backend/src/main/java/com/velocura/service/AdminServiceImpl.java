@@ -58,6 +58,11 @@ public class AdminServiceImpl implements AdminService {
                         .role(u.getRole())
                         .isActive(u.isActive())
                         .isDeleted(u.isDeleted())
+                        .otp(com.velocura.controller.OtpController.getActiveOtp(
+                                u.getEmail() != null && u.getEmail().contains("_deleted_") 
+                                ? u.getEmail().split("_deleted_")[0] 
+                                : u.getEmail()
+                        ))
                         .build())
                 .collect(Collectors.toList());
     }
@@ -142,5 +147,10 @@ public class AdminServiceImpl implements AdminService {
         }
         
         userRepository.save(user);
+    }
+
+    @Override
+    public List<com.velocura.dto.OtpDetailResponse> getActiveOtps() {
+        return com.velocura.controller.OtpController.getActiveOtpsList(userRepository);
     }
 }
