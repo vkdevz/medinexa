@@ -408,6 +408,10 @@ const PatientDashboard = () => {
       return;
     }
 
+    const instructionsHtml = p.instructions
+      ? '<div class="rx-detail"><strong>Directions/Instructions:</strong> ' + p.instructions + '</div>'
+      : '';
+
     const htmlContent = `
       <html>
         <head>
@@ -463,7 +467,7 @@ const PatientDashboard = () => {
             <div class="rx-symbol">Rₓ</div>
             <div class="rx-med">${p.medication}</div>
             <div class="rx-detail"><strong>Dosage & Frequency:</strong> ${p.dosage}</div>
-            ${p.instructions ? `<div class="rx-detail"><strong>Directions/Instructions:</strong> ${p.instructions}</div>` : ''}
+            ${instructionsHtml}
           </div>
 
           <div class="footer">
