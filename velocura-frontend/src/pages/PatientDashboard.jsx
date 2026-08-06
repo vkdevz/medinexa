@@ -408,6 +408,10 @@ const PatientDashboard = () => {
       return;
     }
 
+    const instructionsHtml = p.instructions
+      ? '<div class="rx-detail"><strong>Directions/Instructions:</strong> ' + p.instructions + '</div>'
+      : '';
+
     const htmlContent = `
       <html>
         <head>
@@ -463,7 +467,7 @@ const PatientDashboard = () => {
             <div class="rx-symbol">Rₓ</div>
             <div class="rx-med">${p.medication}</div>
             <div class="rx-detail"><strong>Dosage & Frequency:</strong> ${p.dosage}</div>
-            \${p.instructions ? `<div class="rx-detail"><strong>Directions/Instructions:</strong> \${p.instructions}</div>` : ''}
+            ${instructionsHtml}
           </div>
 
           <div class="footer">
@@ -471,7 +475,7 @@ const PatientDashboard = () => {
               ⚠️ <strong>Patient Instruction Disclaimer:</strong> This digital prescription is officially validated. If you notice any hypersensitivity or adverse side effects, suspend medication immediately and contact support.
             </div>
             <div class="sig-area">
-              <div class="sig-line">Dr. \${p.doctorName} (Authorized Sign)</div>
+              <div class="sig-line">Dr. ${p.doctorName} (Authorized Sign)</div>
             </div>
           </div>
 
@@ -585,15 +589,15 @@ const PatientDashboard = () => {
   };
 
   // ==========================================
-  // STARTUP FEATURE LOGIC: AI CHAT TRIAGE
+  // STARTUP FEATURE LOGIC: AI CHAT TRIAGE (GEMINI API)
   // ==========================================
   const handleSendSymptomQuery = async (e) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
-    const userQuery = chatInput;
+    const userQuery = chatInput.trim();
     const newUserMessage = { sender: 'user', text: userQuery };
-    
+
     setChatHistory(prev => [...prev, newUserMessage]);
     setChatInput('');
     setChatLoading(true);
@@ -610,15 +614,12 @@ const PatientDashboard = () => {
 
       setChatHistory(prev => [...prev, botMessage]);
     } catch (err) {
-      console.error(err);
-      setChatHistory(prev => [
-        ...prev,
-        {
-          sender: 'bot',
-          text: "I'm having trouble analyzing your symptoms right now. Please try again shortly or seek emergency services if your symptoms are critical.",
-          data: null
-        }
-      ]);
+      console.error('AI triage error:', err);
+      setChatHistory(prev => [...prev, {
+        sender: 'bot',
+        text: "I'm having trouble analyzing your symptoms right now. Please try again shortly or seek emergency services if your symptoms are critical.",
+        data: null
+      }]);
     } finally {
       setChatLoading(false);
     }
@@ -1185,7 +1186,7 @@ const PatientDashboard = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-bold font-mono text-slate-400">TRIAGE RISK LEVEL:</span>
                               <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
-                                msg.data.triageLevel === 'Critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                msg.data.triageLevel === 'Critical' ? 'bg-red-500/10 text-red-400 border border-red-500/20 animate-pulse' :
                                 msg.data.triageLevel === 'Moderate' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
                                 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                               }`}>
@@ -1259,25 +1260,28 @@ const PatientDashboard = () => {
                                   <li key={i}>{otc}</li>
                                 ))}
                               </ul>
+                              <p className="text-[10px] text-slate-500 italic mt-1.5 leading-relaxed">
+                                ⚠️ OTC suggestions are guidelines only. Consult a clinician before dosing.
+                              </p>
                             </div>
                           )}
 
-                          <div className="flex items-center justify-end pt-2 border-t border-slate-900">
+                          {/* Specialist + Booking CTA */}
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-800">
+                            <span className="text-xs font-bold font-mono text-teal-400">
+                              SPECIALIST: {msg.data.recommendedSpecialty}
+                            </span>
                             <button
                               onClick={() => {
-                                // Jump directly to booking
                                 setActiveTab('book');
-                                // Select doctor matching this specialty if possible
-                                if (msg.data.recommendedSpecialty) {
-                                  const matchingDoc = doctors.find(d => d.specialization.toLowerCase() === msg.data.recommendedSpecialty.toLowerCase());
-                                  if (matchingDoc) {
-                                    setSelectedDoctorId(matchingDoc.id);
-                                  }
+                                const matchingDoc = doctors.find(d => d.specialization.toLowerCase() === msg.data.recommendedSpecialty.toLowerCase());
+                                if (matchingDoc) {
+                                  setSelectedDoctorId(matchingDoc.id);
                                 }
                               }}
-                              className="bg-teal-500 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs hover:bg-teal-400 transition-colors duration-200 cursor-pointer"
+                              className="bg-teal-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-[10px] hover:bg-teal-400 transition-colors duration-200 cursor-pointer"
                             >
-                              Book consultation with specialist
+                              Book with Specialist
                             </button>
                           </div>
                         </div>

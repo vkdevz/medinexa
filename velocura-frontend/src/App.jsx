@@ -36,11 +36,6 @@ function LandingPage() {
     e.preventDefault();
     if (!symptomsInput.trim()) return;
 
-    if (anonymousChatCount >= 3) {
-      setShowRegisterModal(true);
-      return;
-    }
-
     setChatLoading(true);
     const userQuery = symptomsInput;
     setSymptomsInput('');
@@ -195,8 +190,9 @@ function LandingPage() {
                 <span className="text-[10px] text-teal-400 font-bold uppercase tracking-wider font-mono">Anonymous Free Checkup</span>
               </div>
             </div>
-            <span className="text-xs text-slate-500 font-mono">
-              Checks remaining: <strong className="text-cyan-400">{Math.max(0, 3 - anonymousChatCount)}</strong> / 3
+            <span className="text-xs text-teal-400 font-mono flex items-center gap-1.5 font-semibold">
+              <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+              Unlimited Free AI Triage
             </span>
           </div>
 
@@ -333,7 +329,7 @@ function LandingPage() {
                   <div className="flex space-x-1.5">
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms' }} style={{ marginRight: '8px' }} />
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: '300ms', marginRight: '8px' }} />
                   </div>
                   <span className="text-xs text-slate-500 font-mono">Analyzing symptoms...</span>
                 </div>
@@ -347,14 +343,14 @@ function LandingPage() {
               type="text"
               required
               className="flex-1 bg-slate-950 border border-slate-900 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/25 transition-all duration-200"
-              placeholder={anonymousChatCount >= 3 ? "Limit reached. Please register." : "Describe symptoms e.g., 'cough, throat ache, mild fever'"}
+              placeholder="Describe symptoms e.g., 'severe headache', 'chest pain', 'urinary burning'..."
               value={symptomsInput}
-              disabled={anonymousChatCount >= 3 || chatLoading}
+              disabled={chatLoading}
               onChange={(e) => setSymptomsInput(e.target.value)}
             />
             <button
               type="submit"
-              disabled={anonymousChatCount >= 3 || chatLoading}
+              disabled={chatLoading}
               className="bg-gradient-to-r from-cyan-500 to-teal-500 text-slate-950 font-bold px-6 rounded-xl hover:shadow-lg hover:shadow-cyan-500/10 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm flex items-center justify-center cursor-pointer disabled:opacity-30 disabled:scale-100 disabled:shadow-none"
             >
               Analyze
