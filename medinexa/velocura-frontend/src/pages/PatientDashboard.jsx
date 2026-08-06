@@ -172,35 +172,65 @@ const PatientDashboard = () => {
   const startSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice-to-Text speech recognition is not supported in this browser. Please try Google Chrome or Safari.");
+      setError("Voice-to-Text speech recognition is not supported in this browser. Please try Google Chrome or Safari.");
       return;
     }
 
+    setError('');
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.lang = 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
 
+    // Timeout guard to prevent microphone from hanging active forever (e.g. on permission block or silence)
+    let timeoutId = setTimeout(() => {
+      try {
+        recognition.stop();
+      } catch (e) {}
+      setIsListening(false);
+      setError("Speech recognition timed out. Please speak closer to your microphone or check site permissions.");
+    }, 10000);
+
     recognition.onstart = () => {
       setIsListening(true);
     };
 
     recognition.onresult = (event) => {
+      clearTimeout(timeoutId);
       const speechToText = event.results[0][0].transcript;
       setChatInput(prev => prev ? prev + " " + speechToText : speechToText);
     };
 
     recognition.onerror = (event) => {
+      clearTimeout(timeoutId);
       console.error("Speech recognition error", event.error);
       setIsListening(false);
+      
+      let errMsg = "Speech recognition failed: " + event.error;
+      if (event.error === 'not-allowed') {
+        errMsg = "Microphone access blocked. Please enable microphone permissions in your browser's site settings.";
+      } else if (event.error === 'no-speech') {
+        errMsg = "No speech detected. Please check your mic connection and try speaking again.";
+      } else if (event.error === 'network') {
+        errMsg = "Network error: Speech recognition requires an active internet connection.";
+      }
+      setError(errMsg);
     };
 
     recognition.onend = () => {
+      clearTimeout(timeoutId);
       setIsListening(false);
     };
 
-    recognition.start();
+    try {
+      recognition.start();
+    } catch (err) {
+      clearTimeout(timeoutId);
+      console.error("Failed to start speech recognition:", err);
+      setIsListening(false);
+      setError("Failed to initialize speech recognition: " + err.message);
+    }
   };
 
   const [activeVideoSession, setActiveVideoSession] = useState(null);

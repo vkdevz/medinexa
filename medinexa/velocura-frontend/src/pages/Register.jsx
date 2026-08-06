@@ -128,15 +128,25 @@ const Register = () => {
       await api.post('/api/auth/otp/verify', { email, code: otpCode });
       
       // Step 3: Complete actual user profile persistence
-      await api.post('/api/auth/register', cachedRegisterData);
-      
-      setSuccess('Account verified and created successfully! Redirecting to login...');
-      setShowOtpModal(false);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      try {
+        await api.post('/api/auth/register', cachedRegisterData);
+        setSuccess('Account verified and created successfully! Redirecting to login...');
+        setShowOtpModal(false);
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      } catch (regErr) {
+        console.error("Profile registration error after OTP match:", regErr);
+        if (regErr.response && regErr.response.data && typeof regErr.response.data === 'string') {
+          setOtpError("OTP verified, but registration failed: " + regErr.response.data);
+        } else if (regErr.response && regErr.response.data && regErr.response.data.message) {
+          setOtpError("OTP verified, but registration failed: " + regErr.response.data.message);
+        } else {
+          setOtpError("OTP verified, but failed to create patient database records.");
+        }
+      }
     } catch (err) {
-      console.error(err);
+      console.error("OTP verification error:", err);
       if (err.response && err.response.data && err.response.data.message) {
         setOtpError(err.response.data.message);
       } else if (err.response && err.response.data && typeof err.response.data === 'string') {
