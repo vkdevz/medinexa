@@ -5,7 +5,7 @@ spring:
   application:
     name: velocura-backend
   datasource:
-    url: ${DB_URL:jdbc:h2:mem:velocura_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    url: ${DB_URL:jdbc:h2:file:./velocura_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;AUTO_SERVER=TRUE}
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:}
   jpa:
