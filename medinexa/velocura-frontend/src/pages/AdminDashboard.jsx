@@ -164,11 +164,24 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     setSearchQuery('');
+    let intervalId;
+
     if (activeTab === 'verifications') {
       loadUnverifiedDoctors();
     } else if (activeTab === 'otps') {
       loadActiveOtps();
+      // Auto-poll active OTPs list every 3 seconds to keep it fully real-time
+      intervalId = setInterval(loadActiveOtps, 3000);
+    } else if (activeTab === 'users') {
+      // Instantly refresh OTP list when looking at user list to ensure matching values are fresh
+      loadActiveOtps();
     }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [activeTab]);
 
   if (loading) {
@@ -569,8 +582,8 @@ const AdminDashboard = () => {
               {(() => {
                 if (otpShowActiveOnly) {
                   const filteredOtps = activeOtps.filter(o =>
-                    o.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    o.userName.toLowerCase().includes(searchQuery.toLowerCase())
+                    (o.email || '').toLowerCase().includes((searchQuery || '').toLowerCase()) ||
+                    (o.userName || '').toLowerCase().includes((searchQuery || '').toLowerCase())
                   );
 
                   if (filteredOtps.length === 0) {
@@ -598,7 +611,7 @@ const AdminDashboard = () => {
                             <tr key={index} className="hover:bg-slate-900/10">
                               <td className="py-4 font-bold text-white">{o.email}</td>
                               <td className="py-4">
-                                {o.registeredUser ? (
+                                {(o.registeredUser !== undefined ? o.registeredUser : o.isRegisteredUser) ? (
                                   o.userName
                                 ) : (
                                   <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-mono uppercase tracking-wide">
@@ -670,9 +683,9 @@ const AdminDashboard = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-900">
                           {filteredUsers.map((u) => {
-                            const displayEmail = u.email.includes('_deleted_') ? u.email.split('_deleted_')[0] : u.email;
-                            // Find active OTP from activeOtps list
-                            const matchingOtp = activeOtps.find(o => o.email.toLowerCase().trim() === displayEmail.toLowerCase().trim());
+                            const displayEmail = (u.email || '').includes('_deleted_') ? u.email.split('_deleted_')[0] : (u.email || '');
+                            // Find active OTP from activeOtps list with safe guards
+                            const matchingOtp = activeOtps.find(o => o && (o.email || '').toLowerCase().trim() === displayEmail.toLowerCase().trim());
                             const otpCode = matchingOtp ? matchingOtp.code : u.otp;
 
                             return (
