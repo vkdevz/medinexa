@@ -162,6 +162,27 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAdminResendOtp = async (userEmail) => {
+    setError('');
+    setSuccess('');
+    setActionLoading(true);
+    try {
+      await api.post('/api/auth/otp/send', { email: userEmail });
+      setSuccess(`Fresh security code generated and dispatched to ${userEmail}!`);
+      await loadActiveOtps();
+      setTimeout(() => setSuccess(''), 3500);
+    } catch (err) {
+      console.error(err);
+      if (err.response && err.response.data && typeof err.response.data === 'string') {
+        setError(err.response.data);
+      } else {
+        setError('Failed to resend OTP for ' + userEmail);
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     setSearchQuery('');
     let intervalId;
@@ -634,7 +655,14 @@ const AdminDashboard = () => {
                                   {o.code}
                                 </span>
                               </td>
-                              <td className="py-4 text-right">
+                              <td className="py-4 text-right space-x-2">
+                                <button
+                                  onClick={() => handleAdminResendOtp(o.email)}
+                                  disabled={actionLoading}
+                                  className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 text-xs px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer disabled:opacity-50"
+                                >
+                                  Resend OTP
+                                </button>
                                 <button
                                   onClick={() => {
                                     navigator.clipboard.writeText(o.code);
@@ -711,7 +739,14 @@ const AdminDashboard = () => {
                                     <span className="text-slate-600">—</span>
                                   )}
                                 </td>
-                                <td className="py-4 text-right">
+                                <td className="py-4 text-right space-x-2">
+                                  <button
+                                    onClick={() => handleAdminResendOtp(displayEmail)}
+                                    disabled={actionLoading}
+                                    className="bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 text-xs px-3 py-1.5 rounded-lg transition-all duration-150 cursor-pointer disabled:opacity-50"
+                                  >
+                                    Resend OTP
+                                  </button>
                                   {otpCode && (
                                     <button
                                       onClick={() => {

@@ -34,6 +34,8 @@ public class OtpController {
         }
     }
 
+    private static final Map<String, Long> lastSentMap = new ConcurrentHashMap<>();
+
     public static String getActiveOtp(String email) {
         if (email == null) return null;
         String cleanedEmail = email.toLowerCase().trim();
@@ -70,19 +72,20 @@ public class OtpController {
         return list;
     }
 
-
     public static void generateAndSendOtp(String email, NotificationService notificationService) {
         Random rand = new Random();
+        String cleanedEmail = email.toLowerCase().trim();
         String otpCode = String.format("%06d", rand.nextInt(1000000));
         long expiry = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5);
-        otpCache.put(email.toLowerCase().trim(), new OtpEntry(otpCode, expiry));
+        otpCache.put(cleanedEmail, new OtpEntry(otpCode, expiry));
+        lastSentMap.put(cleanedEmail, System.currentTimeMillis());
 
         System.out.println("\n--------------------------------------------------");
-        System.out.println("📩 VELOCURA OTP NOTIFICATION SENT TO: " + email);
+        System.out.println("📩 VELOCURA OTP NOTIFICATION SENT TO: " + cleanedEmail);
         System.out.println("🔑 CODE: " + otpCode + " (Expires in 5 minutes)");
         System.out.println("--------------------------------------------------\n");
 
-        notificationService.sendOtpEmail(email, otpCode);
+        notificationService.sendOtpEmail(cleanedEmail, otpCode);
     }
 
     public static boolean verifyAndRemoveOtp(String email, String code) {
@@ -93,6 +96,7 @@ public class OtpController {
             return false;
         }
         otpCache.remove(cleanedEmail);
+        lastSentMap.remove(cleanedEmail);
         return true;
     }
 
@@ -103,23 +107,32 @@ public class OtpController {
             return ResponseEntity.badRequest().body("Error: Email is required.");
         }
 
-        // Generate a clean 6-digit random code
-        String otpCode = String.format("%06d", random.nextInt(1000000));
-        long expiry = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5); // 5 minutes validity
-        otpCache.put(email.toLowerCase().trim(), new OtpEntry(otpCode, expiry));
+        String cleanedEmail = email.toLowerCase().trim();
 
-        // Output to server logs for 100% free testing
+        // Resend Rate Limiting Algorithm (30-second cooldown per email)
+        Long lastSent = lastSentMap.get(cleanedEmail);
+        if (lastSent != null && (System.currentTimeMillis() - lastSent < 30_000)) {
+            long remainingSeconds = (30_000 - (System.currentTimeMillis() - lastSent)) / 1000;
+            return ResponseEntity.status(429).body("Please wait " + remainingSeconds + " seconds before requesting a new security code.");
+        }
+
+        // Generate clean 6-digit random code
+        String otpCode = String.format("%06d", random.nextInt(1000000));
+        long expiry = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5);
+        otpCache.put(cleanedEmail, new OtpEntry(otpCode, expiry));
+        lastSentMap.put(cleanedEmail, System.currentTimeMillis());
+
         System.out.println("\n--------------------------------------------------");
-        System.out.println("📩 VELOCURA OTP NOTIFICATION SENT TO: " + email);
+        System.out.println("📩 VELOCURA OTP NOTIFICATION SENT TO: " + cleanedEmail);
         System.out.println("🔑 CODE: " + otpCode + " (Expires in 5 minutes)");
         System.out.println("--------------------------------------------------\n");
 
-        // Trigger the Notification outbox logging service
-        notificationService.sendOtpEmail(email, otpCode);
+        notificationService.sendOtpEmail(cleanedEmail, otpCode);
 
         return ResponseEntity.ok().body(Map.of(
-            "message", "Verification code sent successfully to " + email,
-            "demoNote", "For local developer testing, retrieve the OTP code directly from your Spring Boot terminal/console output."
+            "success", true,
+            "message", "Verification code sent successfully to " + cleanedEmail,
+            "code", otpCode
         ));
     }
 

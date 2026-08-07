@@ -190,6 +190,35 @@ const Login = () => {
             </div>
           )}
 
+          {/* Quick Fill Admin Credentials Helper */}
+          <div className="mb-6 p-3.5 bg-slate-900/80 border border-slate-800 rounded-2xl flex flex-col gap-2">
+            <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">⚡ 1-Click Quick Fill Admin Login:</span>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('admin@velocura.com');
+                  setPassword('VeloCuraAdmin_#2026_SecureKey');
+                  setError('');
+                }}
+                className="text-[11px] font-mono font-semibold bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/25 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+              >
+                admin@velocura.com
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('developers.vkgroup@gmail.com');
+                  setPassword('VeloCuraAdmin_#2026_SecureKey');
+                  setError('');
+                }}
+                className="text-[11px] font-mono font-semibold bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/25 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+              >
+                developers.vkgroup@gmail.com
+              </button>
+            </div>
+          </div>
+
           <form onSubmit={handleLoginSubmit} className="space-y-6">
             
             {/* Email input */}
