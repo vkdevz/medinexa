@@ -82,13 +82,13 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Error: Disposable or temporary email providers are not permitted. Please use a valid email address.");
         }
 
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmailIgnoreCase(email)) {
             return ResponseEntity.badRequest().body("Error: Email is already in use!");
         }
 
         // 1. Create and save base User
         User user = User.builder()
-                .email(registerRequest.getEmail())
+                .email(email)
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .firstName(registerRequest.getFirstName())
                 .lastName(registerRequest.getLastName())

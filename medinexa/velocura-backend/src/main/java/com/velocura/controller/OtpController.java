@@ -52,7 +52,7 @@ public class OtpController {
                 String code = entry.getValue().code;
                 long expiry = entry.getValue().expiryTime;
 
-                java.util.Optional<com.velocura.model.User> userOpt = userRepository.findByEmail(email);
+                java.util.Optional<com.velocura.model.User> userOpt = userRepository.findByEmailIgnoreCase(email);
                 boolean registered = userOpt.isPresent();
                 String userName = registered ? (userOpt.get().getFirstName() + " " + userOpt.get().getLastName()) : "Registration Pending";
                 String role = registered ? userOpt.get().getRole().name() : "GUEST";

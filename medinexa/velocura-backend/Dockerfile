@@ -4,11 +4,8 @@
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS builder
 WORKDIR /app
 
-# Cache dependencies by downloading them beforehand
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
-
 # Copy source directory and compile the application jar
+COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
@@ -31,5 +28,5 @@ USER medinexa
 # Expose HTTP REST API port
 EXPOSE 8080
 
-# Configure execution entrypoint
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Configure execution entrypoint with safe RAM limits for Render / container environments
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]

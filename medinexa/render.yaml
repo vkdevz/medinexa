@@ -1,0 +1,46 @@
+services:
+  # ============================================================================
+  # SPRING BOOT BACKEND WEB SERVICE
+  # ============================================================================
+  - type: web
+    name: velocura-backend
+    env: docker
+    dockerContext: ./velocura-backend
+    dockerfilePath: ./velocura-backend/Dockerfile
+    region: oregon
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: DB_URL
+        fromDatabase:
+          name: velocura-postgres
+          property: connectionString
+      - key: DB_DRIVER
+        value: org.postgresql.Driver
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@velocura.com
+      - key: ADMIN_PASSWORD
+        value: VeloCuraAdmin_#2026_SecureKey
+
+  # ============================================================================
+  # REACT FRONTEND WEB SERVICE
+  # ============================================================================
+  - type: web
+    name: velocura-frontend
+    env: docker
+    dockerContext: ./velocura-frontend
+    dockerfilePath: ./velocura-frontend/Dockerfile
+    region: oregon
+    plan: free
+
+databases:
+  # ============================================================================
+  # MANAGED POSTGRESQL DATABASE (PERSISTENT STORAGE)
+  # ============================================================================
+  - name: velocura-postgres
+    plan: free
+    databaseName: velocura_db
+    user: velocura_user
