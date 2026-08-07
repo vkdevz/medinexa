@@ -172,64 +172,52 @@ const PatientDashboard = () => {
   const startSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setError("Voice-to-Text speech recognition is not supported in this browser. Please try Google Chrome or Safari.");
+      setError("Voice-to-Text speech recognition is not supported in this browser. Please use Google Chrome, Microsoft Edge, or Safari.");
       return;
     }
 
     setError('');
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
-    recognition.lang = 'en-US';
+    recognition.lang = navigator.language || 'en-US';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-
-    // Timeout guard to prevent microphone from hanging active forever (e.g. on permission block or silence)
-    let timeoutId = setTimeout(() => {
-      try {
-        recognition.stop();
-      } catch (e) {}
-      setIsListening(false);
-      setError("Speech recognition timed out. Please speak closer to your microphone or check site permissions.");
-    }, 10000);
 
     recognition.onstart = () => {
       setIsListening(true);
     };
 
     recognition.onresult = (event) => {
-      clearTimeout(timeoutId);
-      const speechToText = event.results[0][0].transcript;
-      setChatInput(prev => prev ? prev + " " + speechToText : speechToText);
+      if (event.results && event.results.length > 0) {
+        const speechToText = event.results[0][0].transcript;
+        setChatInput(prev => prev ? prev + " " + speechToText : speechToText);
+      }
     };
 
     recognition.onerror = (event) => {
-      clearTimeout(timeoutId);
       console.error("Speech recognition error", event.error);
       setIsListening(false);
       
-      let errMsg = "Speech recognition failed: " + event.error;
-      if (event.error === 'not-allowed') {
-        errMsg = "Microphone access blocked. Please enable microphone permissions in your browser's site settings.";
+      let errMsg = "Speech recognition error: " + event.error;
+      if (event.error === 'not-allowed' || event.error === 'permission-denied') {
+        errMsg = "Microphone access blocked. Click the lock/tune icon in your browser address bar to allow microphone access.";
       } else if (event.error === 'no-speech') {
-        errMsg = "No speech detected. Please check your mic connection and try speaking again.";
+        errMsg = "No speech detected. Please try speaking again.";
       } else if (event.error === 'network') {
-        errMsg = "Network error: Speech recognition requires an active internet connection.";
+        errMsg = "Network error: Web speech recognition requires active internet connectivity.";
       }
       setError(errMsg);
     };
 
     recognition.onend = () => {
-      clearTimeout(timeoutId);
       setIsListening(false);
     };
 
     try {
       recognition.start();
     } catch (err) {
-      clearTimeout(timeoutId);
       console.error("Failed to start speech recognition:", err);
       setIsListening(false);
-      setError("Failed to initialize speech recognition: " + err.message);
     }
   };
 
