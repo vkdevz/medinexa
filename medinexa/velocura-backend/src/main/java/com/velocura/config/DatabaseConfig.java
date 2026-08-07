@@ -66,7 +66,7 @@ public class DatabaseConfig {
                 driverClassName = "org.h2.Driver";
             }
         } else {
-            dbUrl = "jdbc:h2:file:./velocura_db;DB_CLOSE_DELAY=-1";
+            dbUrl = "jdbc:h2:mem:velocura_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL";
             driverClassName = "org.h2.Driver";
         }
 
