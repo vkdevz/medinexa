@@ -30,32 +30,36 @@ public class DatabaseSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        String email = adminEmail != null ? adminEmail.trim() : "admin@velocura.com";
-        String password = adminPassword != null ? adminPassword : "VeloCuraAdmin_#2026_SecureKey";
+        try {
+            String email = (adminEmail != null && !adminEmail.trim().isEmpty()) ? adminEmail.toLowerCase().trim() : "admin@velocura.com";
+            String password = adminPassword != null ? adminPassword : "VeloCuraAdmin_#2026_SecureKey";
 
-        Optional<User> adminOpt = userRepository.findByEmail(email);
-        if (adminOpt.isEmpty()) {
-            User admin = User.builder()
-                    .email(email)
-                    .password(passwordEncoder.encode(password))
-                    .firstName("System")
-                    .lastName("Administrator")
-                    .role(Role.ADMIN)
-                    .isActive(true)
-                    .build();
-            userRepository.save(admin);
-            System.out.println("--------------------------------------------------");
-            System.out.println("DATABASE SEEDER: Seeded default Admin user successfully!");
-            System.out.println("Email: " + email);
-            System.out.println("Password: " + password);
-            System.out.println("--------------------------------------------------");
-        } else {
-            User admin = adminOpt.get();
-            admin.setActive(true);
-            admin.setDeleted(false);
-            admin.setPassword(passwordEncoder.encode(password));
-            userRepository.save(admin);
-            System.out.println("DATABASE SEEDER: Verified and updated Admin user status/password.");
+            Optional<User> adminOpt = userRepository.findByEmailIgnoreCase(email);
+            if (adminOpt.isEmpty()) {
+                User admin = User.builder()
+                        .email(email)
+                        .password(passwordEncoder.encode(password))
+                        .firstName("System")
+                        .lastName("Administrator")
+                        .role(Role.ADMIN)
+                        .isActive(true)
+                        .build();
+                userRepository.save(admin);
+                System.out.println("--------------------------------------------------");
+                System.out.println("DATABASE SEEDER: Seeded default Admin user successfully!");
+                System.out.println("Email: " + email);
+                System.out.println("Password: " + password);
+                System.out.println("--------------------------------------------------");
+            } else {
+                User admin = adminOpt.get();
+                admin.setActive(true);
+                admin.setDeleted(false);
+                admin.setPassword(passwordEncoder.encode(password));
+                userRepository.save(admin);
+                System.out.println("DATABASE SEEDER: Verified and updated Admin user status/password.");
+            }
+        } catch (Exception e) {
+            System.err.println("DATABASE SEEDER WARNING: Non-fatal seeder warning during startup: " + e.getMessage());
         }
     }
 }
