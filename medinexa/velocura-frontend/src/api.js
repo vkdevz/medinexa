@@ -4,8 +4,14 @@ const getBaseUrl = () => {
   if (import.meta.env.VITE_API_BASE_URL) {
     return import.meta.env.VITE_API_BASE_URL;
   }
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return window.location.origin;
+  if (typeof window !== 'undefined') {
+    const customBackend = localStorage.getItem('CUSTOM_BACKEND_URL');
+    if (customBackend && customBackend.trim()) {
+      return customBackend.trim();
+    }
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return window.location.origin;
+    }
   }
   return 'http://localhost:8080';
 };
