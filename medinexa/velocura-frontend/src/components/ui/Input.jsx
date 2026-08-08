@@ -23,13 +23,13 @@ export const Input = ({
   return (
     <div className="w-full space-y-1.5">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
-          {label} {required && <span className="text-red-400 font-bold">*</span>}
+        <label htmlFor={inputId} className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] font-mono">
+          {label} {required && <span className="text-red-500 dark:text-red-400 font-bold">*</span>}
         </label>
       )}
       <div className="relative flex items-center">
         {Icon && (
-          <div className="absolute left-3.5 pointer-events-none text-slate-500">
+          <div className="absolute left-3.5 pointer-events-none text-[var(--text-muted)]">
             <Icon className="w-4 h-4" />
           </div>
         )}
@@ -41,16 +41,16 @@ export const Input = ({
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          className={`w-full bg-slate-950 border ${
-            error ? 'border-red-500/60 focus:border-red-500' : 'border-slate-800 focus:border-cyan-500/50'
+          className={`w-full bg-[var(--bg-app)] border ${
+            error ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--border-subtle)] focus:border-[var(--border-focus)]'
           } rounded-lg ${
             Icon ? 'pl-10' : 'px-3.5'
-          } py-2.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-50 disabled:bg-slate-900 transition-all duration-150 ${className}`}
+          } py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--border-focus)] disabled:opacity-50 transition-all duration-150 ${className}`}
           {...props}
         />
       </div>
-      {error && <p className="text-xs text-red-400 font-mono mt-1">{error}</p>}
-      {!error && helperText && <p className="text-xs text-slate-500 font-mono mt-1">{helperText}</p>}
+      {error && <p className="text-xs text-red-500 dark:text-red-400 font-mono mt-1">{error}</p>}
+      {!error && helperText && <p className="text-xs text-[var(--text-muted)] font-mono mt-1">{helperText}</p>}
     </div>
   );
 };

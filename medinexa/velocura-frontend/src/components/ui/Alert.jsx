@@ -13,10 +13,10 @@ export const Alert = ({
   className = ''
 }) => {
   const configs = {
-    info: { icon: Info, style: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-300' },
-    success: { icon: CheckCircle2, style: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300' },
-    warning: { icon: AlertTriangle, style: 'bg-amber-500/10 border-amber-500/25 text-amber-300' },
-    error: { icon: AlertCircle, style: 'bg-red-500/10 border-red-500/25 text-red-300' }
+    info: { icon: Info, style: 'bg-[var(--color-primary-subtle)] border-cyan-500/30 text-[var(--color-primary)]' },
+    success: { icon: CheckCircle2, style: 'bg-[var(--color-success-subtle)] border-emerald-500/30 text-[var(--color-success)]' },
+    warning: { icon: AlertTriangle, style: 'bg-[var(--color-warning-subtle)] border-amber-500/30 text-[var(--color-warning)]' },
+    error: { icon: AlertCircle, style: 'bg-[var(--color-danger-subtle)] border-red-500/30 text-[var(--color-danger)]' }
   };
 
   const config = configs[variant] || configs.info;

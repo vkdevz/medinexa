@@ -83,7 +83,10 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await api.post('/api/auth/otp/send', { email: payload.email });
+      const res = await api.post('/api/auth/otp/send', { email: payload.email });
+      if (res.data && res.data.code) {
+        setDemoCode(res.data.code);
+      }
       setOtpSuccess(`6-digit Security OTP sent to ${payload.email}`);
       setShowOtpModal(true);
       setResendCooldown(30);
@@ -105,7 +108,10 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await api.post('/api/auth/otp/send', { email: cachedRegisterData.email });
+      const res = await api.post('/api/auth/otp/send', { email: cachedRegisterData.email });
+      if (res.data && res.data.code) {
+        setDemoCode(res.data.code);
+      }
       setOtpSuccess('Fresh security OTP generated and sent.');
       setResendCooldown(30);
     } catch (err) {
@@ -311,6 +317,19 @@ const Register = () => {
       >
         {otpError && <Alert variant="error" className="mb-4">{otpError}</Alert>}
         {otpSuccess && <Alert variant="success" className="mb-4">{otpSuccess}</Alert>}
+
+        {demoCode && (
+          <div className="mb-4 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex justify-between items-center">
+            <span>Hosted Project Demo Code: <strong className="font-mono text-amber-200 text-sm tracking-widest">{demoCode}</strong></span>
+            <button
+              type="button"
+              onClick={() => setOtpCode(demoCode)}
+              className="text-[11px] font-mono bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 px-2.5 py-1 rounded border border-amber-500/40 cursor-pointer transition-all"
+            >
+              Auto-fill Code
+            </button>
+          </div>
+        )}
 
         <form onSubmit={handleVerifyAndRegister} className="space-y-4">
           <Input

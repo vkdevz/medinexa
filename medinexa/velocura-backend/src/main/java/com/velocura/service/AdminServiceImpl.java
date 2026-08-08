@@ -153,4 +153,19 @@ public class AdminServiceImpl implements AdminService {
     public List<com.velocura.dto.OtpDetailResponse> getActiveOtps() {
         return com.velocura.controller.OtpController.getActiveOtpsList(userRepository);
     }
+
+    @Override
+    public String issueOtp(String email) {
+        return com.velocura.controller.OtpController.issueOtpForAdmin(email, notificationService);
+    }
+
+    @Override
+    public String resendOtp(String email) {
+        return com.velocura.controller.OtpController.issueOtpForAdmin(email, notificationService);
+    }
+
+    @Override
+    public boolean revokeOtp(String email) {
+        return com.velocura.controller.OtpController.revokeOtp(email);
+    }
 }

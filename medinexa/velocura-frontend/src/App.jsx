@@ -235,16 +235,19 @@ function App() {
       {/* SECURED PATIENT ROUTE GROUP */}
       <Route element={<ProtectedRoute allowedRoles={['PATIENT']} />}>
         <Route path="/patient/dashboard" element={<PatientDashboard />} />
+        <Route path="/patient/*" element={<PatientDashboard />} />
       </Route>
 
       {/* DOCTOR PORTAL DASHBOARD */}
       <Route element={<ProtectedRoute allowedRoles={['DOCTOR']} />}>
         <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+        <Route path="/doctor/*" element={<DoctorDashboard />} />
       </Route>
 
       {/* ADMIN CONSOLE DASHBOARD */}
       <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/*" element={<AdminDashboard />} />
       </Route>
       
       {/* INTERNAL DEV DESIGN SYSTEM SHOWCASE */}

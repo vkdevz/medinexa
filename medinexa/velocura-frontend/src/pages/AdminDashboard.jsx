@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import { AppShell } from '../components/layout/AppShell';
@@ -27,12 +28,25 @@ import {
   UserCheck,
   UserX,
   Trash2,
-  Search
+  Search,
+  Plus,
+  Clock,
+  Key,
+  XCircle
 } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { user, logout } = useContext(AuthContext);
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
+
+  useEffect(() => {
+    const segments = location.pathname.split('/').filter(Boolean);
+    const sub = segments[1];
+    if (sub && sub !== 'dashboard' && ['dashboard', 'users', 'doctors', 'security'].includes(sub)) {
+      setActiveTab(sub);
+    }
+  }, [location.pathname]);
 
   // Core Data states
   const [stats, setStats] = useState(null);
@@ -147,15 +161,21 @@ const AdminDashboard = () => {
     }
   };
 
+  // Admin OTP Modal & Expiry timer states
+  const [showIssueOtpModal, setShowIssueOtpModal] = useState(false);
+  const [issueOtpEmail, setIssueOtpEmail] = useState('');
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
   const handleAdminResendOtp = async (userEmail) => {
     setError('');
     setSuccess('');
     setActionLoading(true);
     try {
-      await api.post('/api/auth/otp/send', { email: userEmail });
-      setSuccess(`Fresh security code generated and dispatched to ${userEmail}!`);
+      const res = await api.post('/api/admin/otps/resend', { email: userEmail });
+      const newCode = res.data?.code ? ` (${res.data.code})` : '';
+      setSuccess(`Fresh security code${newCode} generated and dispatched to ${userEmail}!`);
       await loadActiveOtps();
-      setTimeout(() => setSuccess(''), 3500);
+      setTimeout(() => setSuccess(''), 4000);
     } catch (err) {
       if (err.response && err.response.data && typeof err.response.data === 'string') {
         setError(err.response.data);
@@ -167,17 +187,57 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleAdminIssueOtp = async (e) => {
+    e.preventDefault();
+    if (!issueOtpEmail) return;
+    setError('');
+    setSuccess('');
+    setActionLoading(true);
+    try {
+      const res = await api.post('/api/admin/otps/issue', { email: issueOtpEmail });
+      setSuccess(`Generated 6-digit OTP code (${res.data.code}) for ${issueOtpEmail}`);
+      setShowIssueOtpModal(false);
+      setIssueOtpEmail('');
+      await loadActiveOtps();
+      setTimeout(() => setSuccess(''), 4500);
+    } catch (err) {
+      setError('Failed to issue security OTP code.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRevokeOtp = async (userEmail) => {
+    if (!window.confirm(`Revoke active verification code for ${userEmail}?`)) return;
+    setError('');
+    setSuccess('');
+    setActionLoading(true);
+    try {
+      await api.delete(`/api/admin/otps/${encodeURIComponent(userEmail)}`);
+      setSuccess(`Revoked OTP session for ${userEmail}`);
+      await loadActiveOtps();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to revoke OTP session.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     let intervalId;
+    let clockId;
     if (activeTab === 'doctors') {
       loadUnverifiedDoctors();
       intervalId = setInterval(loadUnverifiedDoctors, 5000);
     } else if (activeTab === 'security') {
       loadActiveOtps();
       intervalId = setInterval(loadActiveOtps, 5000);
+      clockId = setInterval(() => setCurrentTime(Date.now()), 1000);
     }
     return () => {
       if (intervalId) clearInterval(intervalId);
+      if (clockId) clearInterval(clockId);
     };
   }, [activeTab]);
 
@@ -271,6 +331,92 @@ const AdminDashboard = () => {
                 </Alert>
               )}
 
+              {/* Active Security OTP Codes Quick Access Panel */}
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <CardTitle subtitle="Live verification codes for registration and password resets">
+                      <span className="flex items-center gap-2">
+                        <ShieldAlert className="w-5 h-5 text-amber-400" />
+                        Active Security OTP Codes ({activeOtps.length})
+                      </span>
+                    </CardTitle>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" icon={Plus} onClick={() => setShowIssueOtpModal(true)}>
+                        Issue OTP
+                      </Button>
+                      <Button variant="ghost" size="sm" icon={RefreshCw} onClick={loadActiveOtps}>
+                        Refresh
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {activeOtps.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic py-2">No active verification OTP sessions currently running.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {activeOtps.map((o, idx) => {
+                        const remainingMs = o.expiryTime ? (o.expiryTime - currentTime) : 0;
+                        const isExpired = remainingMs <= 0;
+                        const mins = Math.floor(Math.max(0, remainingMs) / 60000);
+                        const secs = Math.floor((Math.max(0, remainingMs) % 60000) / 1000);
+
+                        return (
+                          <div key={idx} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col justify-between gap-2.5">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-xs font-bold text-slate-100 truncate max-w-[170px]" title={o.email}>
+                                  {o.email}
+                                </p>
+                                <p className="text-[11px] text-slate-400">{o.userName} ({o.role})</p>
+                              </div>
+                              <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded ${
+                                isExpired ? 'bg-red-500/10 text-red-400' : 'bg-emerald-500/10 text-emerald-400'
+                              }`}>
+                                {isExpired ? 'Expired' : `${mins}m ${secs}s`}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                              <span className="text-xs text-slate-400 font-mono">OTP CODE:</span>
+                              <span className="font-mono font-bold text-sm text-amber-300 tracking-wider">
+                                {o.code}
+                              </span>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                icon={Copy}
+                                className="w-full text-xs py-1"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(o.code);
+                                  setSuccess(`Copied OTP (${o.code}) for ${o.email}`);
+                                  setTimeout(() => setSuccess(''), 3000);
+                                }}
+                              >
+                                Copy Code
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                icon={Send}
+                                className="w-full text-xs py-1"
+                                onClick={() => handleAdminResendOtp(o.email)}
+                              >
+                                Resend
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* System Audit Summary */}
               <Card>
                 <CardHeader>
@@ -321,6 +467,7 @@ const AdminDashboard = () => {
                       <TableHead>Full Name</TableHead>
                       <TableHead>System Role</TableHead>
                       <TableHead>Account Status</TableHead>
+                      <TableHead>Active OTP</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -344,6 +491,29 @@ const AdminDashboard = () => {
                               <span className={`w-1.5 h-1.5 rounded-full ${u.active ? 'bg-emerald-400' : 'bg-red-400'}`} />
                               {u.active ? 'Active' : 'Inactive'}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            {u.otp ? (
+                              <div className="inline-flex items-center gap-1.5">
+                                <span className="font-mono font-bold text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded">
+                                  {u.otp}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(u.otp);
+                                    setSuccess(`Copied OTP (${u.otp}) for ${displayEmail}`);
+                                    setTimeout(() => setSuccess(''), 3000);
+                                  }}
+                                  className="text-[10px] font-mono text-slate-400 hover:text-amber-300 p-1 hover:bg-slate-800 rounded transition-all cursor-pointer"
+                                  title="Copy OTP"
+                                >
+                                  <Copy className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-mono text-slate-600">None</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right space-x-2">
                             <Button
@@ -432,10 +602,16 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-100">Security OTP Monitoring Audit</h3>
-                  <p className="text-xs text-slate-400">Audit active verification codes generated across registration and password reset workflows.</p>
+                  <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                    <ShieldAlert className="w-5 h-5 text-amber-400" />
+                    Security OTP Monitoring Audit & Dispatch Control
+                  </h3>
+                  <p className="text-xs text-slate-400">Audit active verification codes and issue or refresh security OTPs for registered users or guests.</p>
                 </div>
                 <div className="flex gap-2">
+                  <Button variant="primary" size="sm" icon={Plus} onClick={() => setShowIssueOtpModal(true)}>
+                    Issue New OTP
+                  </Button>
                   <Button variant="ghost" size="sm" icon={RefreshCw} onClick={loadActiveOtps}>Refresh</Button>
                 </div>
               </div>
@@ -454,47 +630,112 @@ const AdminDashboard = () => {
                       <TableHead>User / Identity</TableHead>
                       <TableHead>System Role</TableHead>
                       <TableHead>Active OTP Code</TableHead>
+                      <TableHead>Time Remaining</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredOtps.map((o, idx) => (
-                      <TableRow key={idx}>
-                        <TableCell className="font-bold text-slate-100">{o.email}</TableCell>
-                        <TableCell className="text-xs text-slate-300">{o.userName}</TableCell>
-                        <TableCell><Badge variant={o.role === 'GUEST' ? 'slate' : 'cyan'}>{o.role}</Badge></TableCell>
-                        <TableCell>
-                          <span className="font-mono font-bold text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded">
-                            {o.code}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right space-x-2">
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            icon={Send}
-                            onClick={() => handleAdminResendOtp(o.email)}
-                          >
-                            Resend OTP
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            icon={Copy}
-                            onClick={() => {
-                              navigator.clipboard.writeText(o.code);
-                              setSuccess(`Copied OTP for ${o.email}`);
-                              setTimeout(() => setSuccess(''), 3000);
-                            }}
-                          >
-                            Copy Code
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredOtps.map((o, idx) => {
+                      const remainingMs = o.expiryTime ? (o.expiryTime - currentTime) : 0;
+                      const isExpired = remainingMs <= 0;
+                      const mins = Math.floor(Math.max(0, remainingMs) / 60000);
+                      const secs = Math.floor((Math.max(0, remainingMs) % 60000) / 1000);
+
+                      return (
+                        <TableRow key={idx}>
+                          <TableCell className="font-bold text-slate-100">{o.email}</TableCell>
+                          <TableCell className="text-xs text-slate-300">{o.userName}</TableCell>
+                          <TableCell><Badge variant={o.role === 'GUEST' ? 'slate' : 'cyan'}>{o.role}</Badge></TableCell>
+                          <TableCell>
+                            <span className="font-mono font-bold text-sm text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-md tracking-wider">
+                              {o.code}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center gap-1 font-mono text-xs font-semibold px-2 py-0.5 rounded ${
+                              isExpired
+                                ? 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                : mins < 1
+                                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
+                                : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            }`}>
+                              <Clock className="w-3 h-3" />
+                              {isExpired ? 'Expired' : `${mins}m ${secs}s`}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right space-x-1.5">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              icon={Send}
+                              isLoading={actionLoading}
+                              onClick={() => handleAdminResendOtp(o.email)}
+                              title="Override rate limit and dispatch fresh code"
+                            >
+                              Resend
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              icon={Copy}
+                              onClick={() => {
+                                navigator.clipboard.writeText(o.code);
+                                setSuccess(`Copied OTP (${o.code}) for ${o.email}`);
+                                setTimeout(() => setSuccess(''), 3000);
+                              }}
+                            >
+                              Copy
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              icon={XCircle}
+                              isLoading={actionLoading}
+                              onClick={() => handleRevokeOtp(o.email)}
+                              title="Revoke active OTP session"
+                            >
+                              Revoke
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
+
+              {/* ISSUE NEW OTP MODAL */}
+              <Modal
+                isOpen={showIssueOtpModal}
+                onClose={() => setShowIssueOtpModal(false)}
+                title="Issue Security OTP Code"
+                subtitle="Generate and dispatch a 6-digit verification code on demand"
+              >
+                <form onSubmit={handleAdminIssueOtp} className="space-y-4">
+                  <Input
+                    label="Target Email Address *"
+                    type="email"
+                    placeholder="user@example.com"
+                    value={issueOtpEmail}
+                    onChange={(e) => setIssueOtpEmail(e.target.value)}
+                    required
+                  />
+                  <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs flex items-start gap-2">
+                    <Key className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                    <span>
+                      Issuing an OTP will generate a fresh 6-digit security code valid for 5 minutes, replacing any existing active OTP for this email.
+                    </span>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" size="sm" type="button" onClick={() => setShowIssueOtpModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="primary" size="sm" type="submit" isLoading={actionLoading} icon={Key}>
+                      Generate & Dispatch OTP
+                    </Button>
+                  </div>
+                </form>
+              </Modal>
             </div>
           )}
         </>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import TelehealthRoom from '../components/TelehealthRoom';
@@ -17,6 +18,7 @@ import { Tabs } from '../components/ui/Tabs';
 import { Alert } from '../components/ui/Alert';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Skeleton, CardSkeleton } from '../components/ui/Skeleton';
+import { VoiceDictationButton } from '../components/clinical/VoiceDictationButton';
 
 import {
   Activity,
@@ -40,7 +42,9 @@ import {
   Upload,
   RefreshCw,
   Heart,
-  Droplet
+  Droplet,
+  Search,
+  Filter
 } from 'lucide-react';
 
 const VitalsChart = ({ data }) => {
@@ -79,15 +83,15 @@ const VitalsChart = ({ data }) => {
   };
 
   return (
-    <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+    <div className="p-4 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)]">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] font-mono">
           Vitals Trend Metrics (Last 7 Logs)
         </h4>
         <div className="flex gap-3 text-[10px] font-mono">
-          <span className="flex items-center gap-1 text-rose-400"><span className="w-2 h-2 bg-rose-500 rounded-full"></span>Systolic</span>
-          <span className="flex items-center gap-1 text-sky-400"><span className="w-2 h-2 bg-sky-400 rounded-full"></span>Diastolic</span>
-          <span className="flex items-center gap-1 text-emerald-400"><span className="w-2 h-2 bg-emerald-400 rounded-full"></span>Sugar</span>
+          <span className="flex items-center gap-1 text-rose-500 dark:text-rose-400"><span className="w-2 h-2 bg-rose-500 rounded-full"></span>Systolic</span>
+          <span className="flex items-center gap-1 text-sky-500 dark:text-sky-400"><span className="w-2 h-2 bg-sky-400 rounded-full"></span>Diastolic</span>
+          <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><span className="w-2 h-2 bg-emerald-400 rounded-full"></span>Sugar</span>
         </div>
       </div>
       <div className="relative w-full h-[180px]">
@@ -97,8 +101,8 @@ const VitalsChart = ({ data }) => {
             const val = Math.round(maxValue - ratio * valueRange);
             return (
               <g key={i}>
-                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="#1e293b" strokeDasharray="3 3" />
-                <text x={padding - 5} y={y + 3} fill="#64748b" className="text-[9px] font-mono" textAnchor="end">{val}</text>
+                <line x1={padding} y1={y} x2={width - padding} y2={y} stroke="var(--border-subtle)" strokeDasharray="3 3" />
+                <text x={padding - 5} y={y + 3} fill="var(--text-muted)" className="text-[9px] font-mono" textAnchor="end">{val}</text>
               </g>
             );
           })}
@@ -106,7 +110,7 @@ const VitalsChart = ({ data }) => {
             const x = stepX ? padding + i * stepX : padding;
             const label = (v.timestamp || '').split(',')[0] || '';
             return (
-              <text key={i} x={x} y={height - 8} fill="#64748b" className="text-[9px] font-mono" textAnchor="middle">{label}</text>
+              <text key={i} x={x} y={height - 8} fill="var(--text-muted)" className="text-[9px] font-mono" textAnchor="middle">{label}</text>
             );
           })}
           {chartData.length > 1 && (
@@ -158,12 +162,7 @@ const PatientDashboard = () => {
   // Reschedule fields
   const [rescheduleId, setRescheduleId] = useState(null);
   const [rescheduleTime, setRescheduleTime] = useState('');
-
-  // Account Self-Deletion states
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteCode, setDeleteCode] = useState('');
-  const [deleteError, setDeleteError] = useState('');
-  const [deleteSuccess, setDeleteSuccess] = useState('');
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
 
   // Lab Report Analyzer states
   const [reportFile, setReportFile] = useState(null);
@@ -186,7 +185,7 @@ const PatientDashboard = () => {
   const [chatHistory, setChatHistory] = useState([
     {
       sender: 'bot',
-      text: "Welcome to VeloCura AI Clinical Triage. Please enter or dictate your symptoms below for immediate urgency assessment."
+      text: "Welcome to VeloCura AI Clinical Triage. Describe or dictate your symptoms below for immediate urgency assessment."
     }
   ]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -289,7 +288,7 @@ const PatientDashboard = () => {
       });
       setAllergies(res.data.allergies || '');
       setTimelineEvents(JSON.parse(res.data.medicalHistoryTimeline || '[]'));
-      setSuccess('Medical Passport updated.');
+      setSuccess('Medical Passport updated successfully.');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error(err);
@@ -335,6 +334,7 @@ const PatientDashboard = () => {
       });
       setProfile(res.data);
       setSuccess('Profile records updated successfully!');
+      setShowPassportDrawer(false);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error(err);
@@ -344,47 +344,10 @@ const PatientDashboard = () => {
     }
   };
 
-  const handleRequestDelete = async () => {
-    setDeleteError('');
-    setDeleteSuccess('');
-    setActionLoading(true);
-    try {
-      await api.post('/api/auth/profile/delete/request');
-      setDeleteSuccess('Verification code sent to your registered email address.');
-    } catch (err) {
-      console.error(err);
-      setDeleteError('Failed to generate delete verification code.');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  const handleConfirmDelete = async (e) => {
-    e.preventDefault();
-    setDeleteError('');
-    setActionLoading(true);
-    try {
-      const res = await api.post('/api/auth/profile/delete/confirm', { code: deleteCode });
-      if (res.data && res.data.success) {
-        setShowDeleteModal(false);
-        logout();
-      }
-    } catch (err) {
-      console.error(err);
-      if (err.response && err.response.data && typeof err.response.data === 'string') {
-        setDeleteError(err.response.data);
-      } else {
-        setDeleteError('Invalid security code. Deletion rejected.');
-      }
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const startSpeechRecognition = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      setError("Speech recognition is not supported in this browser. Use Chrome, Edge, or Safari.");
+      setError("Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
       return;
     }
 
@@ -513,6 +476,7 @@ const PatientDashboard = () => {
         newTime: rescheduleTime
       });
       setSuccess('Appointment rescheduled.');
+      setShowRescheduleModal(false);
       setRescheduleId(null);
       setRescheduleTime('');
       const res = await api.get('/api/patient/appointments');
@@ -580,11 +544,11 @@ const PatientDashboard = () => {
   };
 
   const sectionTitles = {
-    overview: 'Patient Dashboard Overview',
-    appointments: 'Appointments & Consultations',
-    doctors: 'Doctor Directory',
-    triage: 'AI Symptom Assessment',
-    passport: 'Medical Passport & History',
+    overview: 'Patient Workstation Overview',
+    appointments: 'Appointments & Scheduling',
+    doctors: 'Medical Specialists & Doctors',
+    triage: 'AI Clinical Triage Advisor',
+    passport: 'Medical Passport & Records',
     prescriptions: 'Prescriptions & Medications',
     reports: 'Diagnostic Lab Reports'
   };
@@ -608,8 +572,8 @@ const PatientDashboard = () => {
         <Alert variant="warning" title="Incoming Video Consultation Ring" className="animate-pulse mb-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <p className="font-semibold text-slate-200">Doctor is inviting you to enter your Telehealth room.</p>
-              <p className="text-[11px] text-slate-400 font-mono">Room: {incomingCall.roomName}</p>
+              <p className="font-semibold text-[var(--text-primary)]">Doctor is inviting you to enter your Telehealth room.</p>
+              <p className="text-[11px] text-[var(--text-secondary)] font-mono">Room: {incomingCall.roomName}</p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -665,22 +629,22 @@ const PatientDashboard = () => {
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* Upcoming Appointment Alert Card */}
+              {/* Primary: Upcoming Appointment Action Card */}
               {upcomingAppt ? (
-                <Card className="border-l-4 border-l-cyan-500 bg-slate-900/90">
+                <Card className="border-l-4 border-l-cyan-500 bg-[var(--bg-surface)]">
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Badge variant="cyan">Next Scheduled Visit</Badge>
                         <StatusBadge status={upcomingAppt.status} />
                       </div>
-                      <h3 className="text-base font-bold text-slate-100">
+                      <h3 className="text-base font-bold text-[var(--text-primary)]">
                         Consultation with Dr. {upcomingAppt.doctorName}
                       </h3>
-                      <p className="text-xs text-slate-400 font-mono">
+                      <p className="text-xs text-[var(--text-secondary)] font-mono">
                         {upcomingAppt.appointmentTime} • Specialty: {upcomingAppt.specialty || 'General Practitioner'}
                       </p>
-                      <p className="text-xs text-slate-300 italic">"Reason: {upcomingAppt.reason}"</p>
+                      <p className="text-xs text-[var(--text-muted)] italic">&quot;Reason: {upcomingAppt.reason}&quot;</p>
                     </div>
                     <div className="flex gap-2 w-full md:w-auto">
                       <Button
@@ -695,52 +659,59 @@ const PatientDashboard = () => {
                   </div>
                 </Card>
               ) : (
-                <Alert variant="info" title="No Upcoming Consultations Scheduled">
-                  You currently have no pending telehealth visits. Select a doctor to book a consultation.
-                </Alert>
+                <EmptyState
+                  icon={Calendar}
+                  title="You don't have any upcoming appointments."
+                  description="Book a consultation with our verified healthcare specialists whenever you need clinical care."
+                  actionLabel="Find a Doctor"
+                  onAction={() => setActiveTab('doctors')}
+                />
               )}
 
-              {/* Quick Metrics Grid */}
+              {/* Secondary: Quick Health Care Metrics */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card padding="p-4" className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--color-primary-subtle)] border border-cyan-500/20 text-[var(--color-primary)] flex items-center justify-center shrink-0">
                     <Calendar className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-mono uppercase">Appointments</p>
-                    <p className="text-lg font-bold text-slate-100">{appointments.length}</p>
+                    <p className="text-xs text-[var(--text-secondary)] font-mono uppercase">Appointments</p>
+                    <p className="text-lg font-bold text-[var(--text-primary)]">{appointments.length}</p>
                   </div>
                 </Card>
+
                 <Card padding="p-4" className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--color-teal-subtle)] border border-teal-500/20 text-[var(--color-teal)] flex items-center justify-center shrink-0">
                     <FileText className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-mono uppercase">Active Prescriptions</p>
-                    <p className="text-lg font-bold text-slate-100">{prescriptions.length}</p>
+                    <p className="text-xs text-[var(--text-secondary)] font-mono uppercase">Active Prescriptions</p>
+                    <p className="text-lg font-bold text-[var(--text-primary)]">{prescriptions.length}</p>
                   </div>
                 </Card>
+
                 <Card padding="p-4" className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--color-purple-subtle)] border border-purple-500/20 text-[var(--color-purple)] flex items-center justify-center shrink-0">
                     <Stethoscope className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-mono uppercase">Available Doctors</p>
-                    <p className="text-lg font-bold text-slate-100">{doctors.length}</p>
+                    <p className="text-xs text-[var(--text-secondary)] font-mono uppercase">Available Doctors</p>
+                    <p className="text-lg font-bold text-[var(--text-primary)]">{doctors.length}</p>
                   </div>
                 </Card>
+
                 <Card padding="p-4" className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--color-success-subtle)] border border-emerald-500/20 text-[var(--color-success)] flex items-center justify-center shrink-0">
                     <Heart className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 font-mono uppercase">Blood Group</p>
-                    <p className="text-lg font-bold text-slate-100">{bloodGroup || 'O+'}</p>
+                    <p className="text-xs text-[var(--text-secondary)] font-mono uppercase">Blood Group</p>
+                    <p className="text-lg font-bold text-[var(--text-primary)]">{bloodGroup || 'O+'}</p>
                   </div>
                 </Card>
               </div>
 
-              {/* Vitals Graph & Entry Form */}
+              {/* Vitals Graph & Entry Widget */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <VitalsChart data={vitalsList} />
@@ -798,8 +769,8 @@ const PatientDashboard = () => {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-100">Consultation Schedule</h3>
-                  <p className="text-xs text-slate-400">View, manage, and book telehealth visits with certified doctors.</p>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">Consultation Schedule</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">View, manage, and book telehealth visits with certified doctors.</p>
                 </div>
                 <Button
                   variant="primary"
@@ -814,10 +785,10 @@ const PatientDashboard = () => {
               {appointments.length === 0 ? (
                 <EmptyState
                   icon={Calendar}
-                  title="No Appointments Found"
-                  description="You haven't scheduled any consultations yet."
-                  actionLabel="Book First Appointment"
-                  onAction={() => setShowBookingModal(true)}
+                  title="You don't have any upcoming appointments."
+                  description="Select a verified physician to schedule your consultation."
+                  actionLabel="Find a Doctor"
+                  onAction={() => setActiveTab('doctors')}
                 />
               ) : (
                 <Table>
@@ -834,16 +805,16 @@ const PatientDashboard = () => {
                   <TableBody>
                     {appointments.map((appt) => (
                       <TableRow key={appt.id}>
-                        <TableCell className="font-semibold text-slate-100">
+                        <TableCell className="font-semibold text-[var(--text-primary)]">
                           Dr. {appt.doctorName}
                         </TableCell>
                         <TableCell>
                           <Badge variant="teal">{appt.specialty || 'General Practitioner'}</Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-xs text-slate-300">
+                        <TableCell className="font-mono text-xs text-[var(--text-secondary)]">
                           {appt.appointmentTime}
                         </TableCell>
-                        <TableCell className="text-xs text-slate-400 max-w-xs truncate">
+                        <TableCell className="text-xs text-[var(--text-muted)] max-w-xs truncate">
                           {appt.reason}
                         </TableCell>
                         <TableCell>
@@ -858,6 +829,7 @@ const PatientDashboard = () => {
                                 onClick={() => {
                                   setRescheduleId(appt.id);
                                   setRescheduleTime(appt.appointmentTime);
+                                  setShowRescheduleModal(true);
                                 }}
                               >
                                 Reschedule
@@ -885,14 +857,15 @@ const PatientDashboard = () => {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h3 className="text-base font-bold text-slate-100">Certified Specialists Directory</h3>
-                  <p className="text-xs text-slate-400">Search and book consultations with verified medical professionals.</p>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">Certified Specialists Directory</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">Search and book consultations with verified medical professionals.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                   <Input
                     placeholder="Search doctor or specialty..."
                     value={doctorSearch}
                     onChange={(e) => setDoctorSearch(e.target.value)}
+                    icon={Search}
                     className="w-full sm:w-60"
                   />
                   <Select
@@ -909,32 +882,42 @@ const PatientDashboard = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredDoctors.map((doc) => (
-                  <Card key={doc.id} hover className="flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Badge variant="teal">{doc.specialty}</Badge>
-                        <span className="text-[11px] font-mono text-emerald-400 font-semibold">✓ Verified Doctor</span>
+              {filteredDoctors.length === 0 ? (
+                <EmptyState
+                  icon={Stethoscope}
+                  title="No doctors match your search."
+                  description="Try adjusting your filter terms or specialty dropdown."
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredDoctors.map((doc) => (
+                    <Card key={doc.id} hover className="flex flex-col justify-between space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="teal">{doc.specialty}</Badge>
+                          <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-bold text-[var(--text-primary)]">Dr. {doc.name}</h4>
+                        <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-sans">{doc.bio || 'Experienced practitioner dedicated to comprehensive patient care.'}</p>
                       </div>
-                      <h4 className="text-sm font-bold text-slate-100">Dr. {doc.name}</h4>
-                      <p className="text-xs text-slate-400 leading-relaxed font-sans">{doc.bio || 'Experienced practitioner dedicated to comprehensive patient care.'}</p>
-                    </div>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon={Calendar}
-                      className="w-full"
-                      onClick={() => {
-                        setSelectedDoctorId(doc.id.toString());
-                        setShowBookingModal(true);
-                      }}
-                    >
-                      Book Visit ($50.00)
-                    </Button>
-                  </Card>
-                ))}
-              </div>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon={Calendar}
+                        className="w-full"
+                        onClick={() => {
+                          setSelectedDoctorId(doc.id.toString());
+                          setShowBookingModal(true);
+                        }}
+                      >
+                        Book Visit ($50.00)
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -943,14 +926,14 @@ const PatientDashboard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Card className="lg:col-span-2 space-y-4">
                 <CardHeader>
-                  <CardTitle subtitle="AI-Assisted Symptom Checkup — Generated from information provided. Review with clinician recommended.">
+                  <CardTitle subtitle="AI-Assisted Symptom Checkup — Assessment based on clinical triage guidelines.">
                     Clinical AI Triage Assistant
                   </CardTitle>
-                  <Badge variant="cyan">AI-Assisted Triage</Badge>
+                  <Badge variant="cyan">AI-Assisted Assessment</Badge>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Chat History Container */}
-                  <div className="h-[380px] overflow-y-auto space-y-4 pr-2 custom-scrollbar border border-slate-800 rounded-lg p-4 bg-slate-950/60">
+                  <div className="h-[380px] overflow-y-auto space-y-4 pr-2 custom-scrollbar border border-[var(--border-subtle)] rounded-lg p-4 bg-[var(--bg-app)]">
                     {chatHistory.map((msg, idx) => (
                       <div
                         key={idx}
@@ -959,7 +942,7 @@ const PatientDashboard = () => {
                         }`}
                       >
                         {msg.sender === 'bot' && (
-                          <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-[var(--color-primary-subtle)] border border-cyan-500/20 text-[var(--color-primary)] flex items-center justify-center shrink-0">
                             <Sparkles className="w-4 h-4" />
                           </div>
                         )}
@@ -967,18 +950,30 @@ const PatientDashboard = () => {
                           className={`max-w-md p-3 rounded-lg ${
                             msg.sender === 'user'
                               ? 'bg-cyan-500 text-slate-950 font-medium'
-                              : 'bg-slate-900 border border-slate-800 text-slate-200'
+                              : 'bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)]'
                           }`}
                         >
                           <p className="whitespace-pre-wrap font-sans">{msg.text}</p>
                           {msg.triageResult && (
-                            <div className="mt-3 pt-3 border-t border-slate-800 space-y-2">
+                            <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] space-y-2">
                               <StatusBadge status={msg.triageResult.triageLevel} />
-                              <div className="space-y-1">
-                                <p className="font-mono text-[10px] uppercase text-slate-400 font-bold">Home Care Remedies:</p>
-                                <ul className="list-disc list-inside text-slate-300 text-[11px]">
-                                  {(msg.triageResult.homeRemedies || []).map((r, i) => <li key={i}>{r}</li>)}
-                                </ul>
+                              {msg.triageResult.homeRemedies && msg.triageResult.homeRemedies.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="font-mono text-[10px] uppercase text-[var(--text-secondary)] font-bold">Suggested Care:</p>
+                                  <ul className="list-disc list-inside text-[var(--text-secondary)] text-[11px]">
+                                    {msg.triageResult.homeRemedies.map((r, i) => <li key={i}>{r}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                              <div className="pt-2">
+                                <Button
+                                  variant="primary"
+                                  size="sm"
+                                  onClick={() => setActiveTab('doctors')}
+                                  className="w-full"
+                                >
+                                  Book Specialist Consultation
+                                </Button>
                               </div>
                             </div>
                           )}
@@ -987,7 +982,7 @@ const PatientDashboard = () => {
                     ))}
                   </div>
 
-                  {/* Symptom Input Form */}
+                  {/* Symptom Input Form with Voice-to-Text */}
                   <form onSubmit={handleSendMessage} className="space-y-3">
                     <div className="relative">
                       <Textarea
@@ -997,23 +992,12 @@ const PatientDashboard = () => {
                         onChange={(e) => setChatInput(e.target.value)}
                         required
                       />
-                      <button
-                        type="button"
-                        onClick={startSpeechRecognition}
-                        className={`absolute right-3 bottom-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                          isListening
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
-                            : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                        }`}
-                        title="Voice-to-Text Speech Recognition"
-                      >
-                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                      </button>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-[11px] font-mono text-slate-500">
-                        {isListening ? '🎙️ Listening... Speak into microphone.' : 'Press speech icon for voice dictation.'}
-                      </span>
+                    <div className="flex flex-wrap justify-between items-center gap-2">
+                      <VoiceDictationButton
+                        compact={true}
+                        onTranscript={(text) => setChatInput((prev) => (prev ? `${prev} ${text}` : text))}
+                      />
                       <Button type="submit" variant="primary" size="sm" isLoading={chatLoading} icon={Sparkles}>
                         Analyze Symptoms
                       </Button>
@@ -1025,13 +1009,28 @@ const PatientDashboard = () => {
               {/* Triage Safety Notes */}
               <div className="space-y-4">
                 <Alert variant="warning" title="Emergency Disclaimer">
-                  If you are experiencing severe chest pain, sudden numbness, extreme shortness of breath, or heavy bleeding, call 911 or visit the nearest emergency room immediately.
+                  AI assistance is not a confirmed medical diagnosis. If you are experiencing severe chest pain, sudden numbness, extreme shortness of breath, or heavy bleeding, call 911 immediately.
                 </Alert>
                 <Card padding="p-4" className="space-y-3">
-                  <h4 className="text-xs font-bold font-mono uppercase text-slate-300">How AI Triage Works</h4>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Our AI clinical engine evaluates symptom inputs against clinical triage guidelines to categorize risk levels and suggest appropriate medical care.
-                  </p>
+                  <h4 className="text-xs font-bold font-mono uppercase text-[var(--text-primary)]">Clinical Severity Levels</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status="EMERGENCY" />
+                      <span className="text-[var(--text-secondary)] text-[11px]">Immediate ER or 911</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status="HIGH" />
+                      <span className="text-[var(--text-secondary)] text-[11px]">Same-day clinical visit</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status="MEDIUM" />
+                      <span className="text-[var(--text-secondary)] text-[11px]">Schedule consultation</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status="ROUTINE" />
+                      <span className="text-[var(--text-secondary)] text-[11px]">Self-care & monitoring</span>
+                    </div>
+                  </div>
                 </Card>
               </div>
             </div>
@@ -1042,8 +1041,8 @@ const PatientDashboard = () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-base font-bold text-slate-100">Patient Medical Passport</h3>
-                  <p className="text-xs text-slate-400">Personal health metrics, allergies, and clinical medical timeline.</p>
+                  <h3 className="text-base font-bold text-[var(--text-primary)]">Patient Medical Passport</h3>
+                  <p className="text-xs text-[var(--text-secondary)]">Personal health metrics, allergies, and clinical medical timeline.</p>
                 </div>
                 <Button variant="secondary" size="sm" icon={User} onClick={() => setShowPassportDrawer(true)}>
                   Edit Passport Information
@@ -1053,19 +1052,21 @@ const PatientDashboard = () => {
               {/* Profile Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card padding="p-4" className="space-y-2">
-                  <p className="text-[10px] font-mono uppercase text-slate-500">Demographics</p>
-                  <p className="text-sm font-bold text-slate-100">{user?.firstName} {user?.lastName}</p>
-                  <p className="text-xs text-slate-400 font-mono">DOB: {dob || 'Not specified'}</p>
-                  <p className="text-xs text-slate-400 font-mono">Gender: {gender}</p>
+                  <p className="text-[10px] font-mono uppercase text-[var(--text-muted)]">Demographics</p>
+                  <p className="text-sm font-bold text-[var(--text-primary)]">{user?.firstName} {user?.lastName}</p>
+                  <p className="text-xs text-[var(--text-secondary)] font-mono">DOB: {dob || 'Not specified'}</p>
+                  <p className="text-xs text-[var(--text-secondary)] font-mono">Gender: {gender}</p>
                 </Card>
+
                 <Card padding="p-4" className="space-y-2">
-                  <p className="text-[10px] font-mono uppercase text-slate-500">Contact & Address</p>
-                  <p className="text-xs text-slate-300 font-mono">Phone: {phone || 'Not set'}</p>
-                  <p className="text-xs text-slate-400">{address || 'No primary address recorded'}</p>
+                  <p className="text-[10px] font-mono uppercase text-[var(--text-muted)]">Contact & Address</p>
+                  <p className="text-xs text-[var(--text-primary)] font-mono">Phone: {phone || 'Not set'}</p>
+                  <p className="text-xs text-[var(--text-secondary)]">{address || 'No primary address recorded'}</p>
                 </Card>
+
                 <Card padding="p-4" className="space-y-2">
-                  <p className="text-[10px] font-mono uppercase text-slate-500">Allergies & Critical Warnings</p>
-                  <p className="text-xs text-amber-400 font-mono">{allergies || 'No known allergies recorded'}</p>
+                  <p className="text-[10px] font-mono uppercase text-[var(--text-muted)]">Allergies & Critical Warnings</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 font-mono">{allergies || 'No known allergies recorded'}</p>
                 </Card>
               </div>
 
@@ -1075,7 +1076,7 @@ const PatientDashboard = () => {
                   <CardTitle subtitle="Chronological clinical history timeline">Medical Timeline</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <form onSubmit={handleAddTimelineEvent} className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-slate-950 border border-slate-800 rounded-lg">
+                  <form onSubmit={handleAddTimelineEvent} className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-[var(--bg-app)] border border-[var(--border-subtle)] rounded-lg">
                     <Input
                       type="date"
                       value={timelineDate}
@@ -1100,19 +1101,22 @@ const PatientDashboard = () => {
                   </form>
 
                   {timelineEvents.length === 0 ? (
-                    <EmptyState title="No Medical Events Recorded" description="Add surgeries, chronic conditions, or diagnoses to your timeline." />
+                    <EmptyState
+                      title="No Medical Events Recorded"
+                      description="Add surgeries, chronic conditions, or diagnoses to your clinical timeline."
+                    />
                   ) : (
                     <div className="space-y-3 pt-2">
                       {timelineEvents.map((ev) => (
-                        <div key={ev.id} className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 flex justify-between items-start gap-4">
+                        <div key={ev.id} className="p-3.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-subtle)] flex justify-between items-start gap-4">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-mono font-bold text-cyan-400">{ev.date}</span>
+                              <span className="text-xs font-mono font-bold text-[var(--color-primary)]">{ev.date}</span>
                               <Badge variant="purple">{ev.eventType}</Badge>
                             </div>
-                            {ev.description && <p className="text-xs text-slate-400 mt-1">{ev.description}</p>}
+                            {ev.description && <p className="text-xs text-[var(--text-secondary)] mt-1">{ev.description}</p>}
                           </div>
-                          <button onClick={() => handleDeleteTimelineEvent(ev.id)} className="text-red-400 hover:text-red-300 p-1 cursor-pointer">
+                          <button onClick={() => handleDeleteTimelineEvent(ev.id)} className="text-red-500 hover:text-red-400 p-1 cursor-pointer">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -1128,12 +1132,16 @@ const PatientDashboard = () => {
           {activeTab === 'prescriptions' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-base font-bold text-slate-100">Prescriptions & Active Medications</h3>
-                <p className="text-xs text-slate-400">View official prescriptions issued by your consulting physicians.</p>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">Prescriptions & Active Medications</h3>
+                <p className="text-xs text-[var(--text-secondary)]">View official prescriptions issued by your consulting physicians.</p>
               </div>
 
               {prescriptions.length === 0 ? (
-                <EmptyState icon={FileText} title="No Active Prescriptions" description="You have no issued prescriptions recorded." />
+                <EmptyState
+                  icon={FileText}
+                  title="You don't have any prescriptions yet."
+                  description="Official prescriptions issued during consultations will appear here."
+                />
               ) : (
                 <Table>
                   <TableHeader>
@@ -1149,12 +1157,12 @@ const PatientDashboard = () => {
                   <TableBody>
                     {prescriptions.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-bold text-slate-100">{p.medicationName}</TableCell>
+                        <TableCell className="font-bold text-[var(--text-primary)]">{p.medicationName}</TableCell>
                         <TableCell className="font-mono text-xs">{p.dosage}</TableCell>
                         <TableCell className="font-mono text-xs">{p.frequency}</TableCell>
                         <TableCell className="font-mono text-xs">{p.duration || '7 Days'}</TableCell>
-                        <TableCell className="text-xs text-slate-400 max-w-xs">{p.instructions}</TableCell>
-                        <TableCell className="text-xs text-cyan-400 font-medium">Dr. {p.doctorName || 'Attending Physician'}</TableCell>
+                        <TableCell className="text-xs text-[var(--text-secondary)] max-w-xs">{p.instructions}</TableCell>
+                        <TableCell className="text-xs text-[var(--color-primary)] font-medium">Dr. {p.doctorName || 'Attending Physician'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1187,18 +1195,24 @@ const PatientDashboard = () => {
 
                   {analyzerError && <Alert variant="error">{analyzerError}</Alert>}
 
-                  {reportAnalysis && (
-                    <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
-                      <h5 className="text-xs font-bold uppercase font-mono text-cyan-400">Clinical Analysis Summary</h5>
-                      <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap font-sans">{reportAnalysis}</p>
+                  {reportAnalysis ? (
+                    <div className="p-4 rounded-lg bg-[var(--bg-app)] border border-[var(--border-subtle)] space-y-2">
+                      <h5 className="text-xs font-bold uppercase font-mono text-[var(--color-primary)]">Clinical Analysis Summary</h5>
+                      <p className="text-xs text-[var(--text-primary)] leading-relaxed whitespace-pre-wrap font-sans">{reportAnalysis}</p>
                     </div>
+                  ) : (
+                    <EmptyState
+                      icon={Clock}
+                      title="Your reports will appear here once they are available."
+                      description="Upload a medical document above or wait for lab results to sync."
+                    />
                   )}
                 </CardContent>
               </Card>
 
               <Card padding="p-4" className="space-y-3">
-                <h4 className="text-xs font-bold font-mono uppercase text-slate-300">Diagnostic Upload Tips</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <h4 className="text-xs font-bold font-mono uppercase text-[var(--text-primary)]">Diagnostic Upload Tips</h4>
+                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
                   Supported formats: PDF, PNG, JPG. Ensure text is clear and readable for accurate automated extraction.
                 </p>
               </Card>
@@ -1239,6 +1253,28 @@ const PatientDashboard = () => {
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="ghost" size="sm" onClick={() => setShowBookingModal(false)}>Cancel</Button>
             <Button type="submit" variant="primary" size="sm" isLoading={actionLoading}>Confirm Booking</Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Reschedule Appointment Modal */}
+      <Modal
+        isOpen={showRescheduleModal}
+        onClose={() => setShowRescheduleModal(false)}
+        title="Reschedule Consultation"
+        subtitle="Select a new date and time for your visit"
+      >
+        <form onSubmit={handleRescheduleSubmit} className="space-y-4">
+          <Input
+            label="New Appointment Date & Time"
+            type="datetime-local"
+            value={rescheduleTime}
+            onChange={(e) => setRescheduleTime(e.target.value)}
+            required
+          />
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowRescheduleModal(false)}>Cancel</Button>
+            <Button type="submit" variant="primary" size="sm" isLoading={actionLoading}>Save Rescheduled Visit</Button>
           </div>
         </form>
       </Modal>

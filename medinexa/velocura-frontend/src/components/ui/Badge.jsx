@@ -11,13 +11,13 @@ export const Badge = ({
   className = ''
 }) => {
   const variantStyles = {
-    cyan: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20',
-    teal: 'bg-teal-500/10 text-teal-400 border border-teal-500/20',
-    purple: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
-    emerald: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
-    amber: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
-    red: 'bg-red-500/10 text-red-400 border border-red-500/20',
-    slate: 'bg-slate-800 text-slate-300 border border-slate-700'
+    cyan: 'bg-[var(--color-primary-subtle)] text-[var(--color-primary)] border border-cyan-500/20',
+    teal: 'bg-[var(--color-teal-subtle)] text-[var(--color-teal)] border border-teal-500/20',
+    purple: 'bg-[var(--color-purple-subtle)] text-[var(--color-purple)] border border-purple-500/20',
+    emerald: 'bg-[var(--color-success-subtle)] text-[var(--color-success)] border border-emerald-500/20',
+    amber: 'bg-[var(--color-warning-subtle)] text-[var(--color-warning)] border border-amber-500/20',
+    red: 'bg-[var(--color-danger-subtle)] text-[var(--color-danger)] border border-red-500/20',
+    slate: 'bg-[var(--bg-elevated)] text-[var(--text-secondary)] border border-[var(--border-subtle)]'
   };
 
   const sizeStyles = {

@@ -22,11 +22,11 @@ export const Button = ({
 
   const variantStyles = {
     primary: 'bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold shadow-sm active:bg-cyan-600',
-    secondary: 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 active:bg-slate-850',
-    danger: 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 active:bg-red-500/30',
-    success: 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/25 active:bg-emerald-500/30',
-    outline: 'bg-transparent border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white',
-    ghost: 'bg-transparent hover:bg-slate-800/60 text-slate-400 hover:text-slate-200'
+    secondary: 'bg-[var(--bg-elevated)] hover:bg-[var(--border-default)] text-[var(--text-primary)] border border-[var(--border-default)] active:opacity-90',
+    danger: 'bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/25 active:bg-red-500/30',
+    success: 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 active:bg-emerald-500/30',
+    outline: 'bg-transparent border border-[var(--border-default)] hover:border-[var(--border-focus)] text-[var(--text-primary)] hover:text-[var(--color-primary)]',
+    ghost: 'bg-transparent hover:bg-[var(--bg-elevated)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
   };
 
   const sizeStyles = {

@@ -4,21 +4,21 @@ import React from 'react';
  * Enterprise Clinical Data Table Component
  */
 export const Table = ({ children, className = '' }) => (
-  <div className="w-full overflow-x-auto custom-scrollbar rounded-lg border border-slate-800 bg-slate-900/50">
-    <table className={`w-full text-left text-sm text-slate-300 ${className}`}>
+  <div className="w-full overflow-x-auto custom-scrollbar rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+    <table className={`w-full text-left text-sm text-[var(--text-primary)] ${className}`}>
       {children}
     </table>
   </div>
 );
 
 export const TableHeader = ({ children }) => (
-  <thead className="bg-slate-900/90 text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono border-b border-slate-800">
+  <thead className="bg-[var(--bg-elevated)] text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] font-mono border-b border-[var(--border-subtle)]">
     {children}
   </thead>
 );
 
 export const TableBody = ({ children }) => (
-  <tbody className="divide-y divide-slate-800/60 bg-slate-950/40">
+  <tbody className="divide-y divide-[var(--border-subtle)] bg-[var(--bg-surface)]">
     {children}
   </tbody>
 );
@@ -26,7 +26,7 @@ export const TableBody = ({ children }) => (
 export const TableRow = ({ children, className = '', onClick }) => (
   <tr
     onClick={onClick}
-    className={`${onClick ? 'cursor-pointer hover:bg-slate-850/60' : 'hover:bg-slate-900/40'} transition-colors duration-150 ${className}`}
+    className={`${onClick ? 'cursor-pointer hover:bg-[var(--bg-elevated)]' : 'hover:bg-[var(--bg-elevated)]/50'} transition-colors duration-150 ${className}`}
   >
     {children}
   </tr>

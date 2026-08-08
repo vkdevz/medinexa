@@ -100,6 +100,33 @@ public class OtpController {
         return true;
     }
 
+    public static String issueOtpForAdmin(String email, NotificationService notificationService) {
+        if (email == null || email.trim().isEmpty()) return null;
+        String cleanedEmail = email.toLowerCase().trim();
+        Random rand = new Random();
+        String otpCode = String.format("%06d", rand.nextInt(1000000));
+        long expiry = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(5);
+        otpCache.put(cleanedEmail, new OtpEntry(otpCode, expiry));
+        lastSentMap.put(cleanedEmail, System.currentTimeMillis());
+
+        System.out.println("\n--------------------------------------------------");
+        System.out.println("📩 VELOCURA ADMIN OTP DISPATCH TO: " + cleanedEmail);
+        System.out.println("🔑 CODE: " + otpCode + " (Expires in 5 minutes)");
+        System.out.println("--------------------------------------------------\n");
+
+        if (notificationService != null) {
+            notificationService.sendOtpEmail(cleanedEmail, otpCode);
+        }
+        return otpCode;
+    }
+
+    public static boolean revokeOtp(String email) {
+        if (email == null) return false;
+        String cleanedEmail = email.toLowerCase().trim();
+        lastSentMap.remove(cleanedEmail);
+        return otpCache.remove(cleanedEmail) != null;
+    }
+
     @PostMapping("/send")
     public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");

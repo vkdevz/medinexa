@@ -13,7 +13,7 @@ export const Card = ({
   return (
     <div
       className={`surface-card ${padding} ${
-        hover ? 'hover:border-slate-700 transition-colors duration-150' : ''
+        hover ? 'hover:border-[var(--border-default)] transition-all duration-150 shadow-sm hover:shadow-md' : ''
       } ${className}`}
       {...props}
     >
@@ -23,15 +23,15 @@ export const Card = ({
 };
 
 export const CardHeader = ({ children, className = '' }) => (
-  <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-slate-800/80 ${className}`}>
+  <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-[var(--border-subtle)] ${className}`}>
     {children}
   </div>
 );
 
 export const CardTitle = ({ children, subtitle, className = '' }) => (
   <div>
-    <h3 className={`text-base font-bold text-slate-100 tracking-tight ${className}`}>{children}</h3>
-    {subtitle && <p className="text-xs text-slate-400 mt-0.5 font-sans">{subtitle}</p>}
+    <h3 className={`text-base font-bold text-[var(--text-primary)] tracking-tight ${className}`}>{children}</h3>
+    {subtitle && <p className="text-xs text-[var(--text-secondary)] mt-0.5 font-sans">{subtitle}</p>}
   </div>
 );
 
@@ -40,7 +40,7 @@ export const CardContent = ({ children, className = '' }) => (
 );
 
 export const CardFooter = ({ children, className = '' }) => (
-  <div className={`pt-4 mt-4 border-t border-slate-800/80 flex items-center justify-end gap-3 ${className}`}>
+  <div className={`pt-4 mt-4 border-t border-[var(--border-subtle)] flex items-center justify-end gap-3 ${className}`}>
     {children}
   </div>
 );

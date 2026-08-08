@@ -22,8 +22,8 @@ export const Select = ({
   return (
     <div className="w-full space-y-1.5">
       {label && (
-        <label htmlFor={selectId} className="block text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
-          {label} {required && <span className="text-red-400 font-bold">*</span>}
+        <label htmlFor={selectId} className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] font-mono">
+          {label} {required && <span className="text-red-500 dark:text-red-400 font-bold">*</span>}
         </label>
       )}
       <select
@@ -32,24 +32,24 @@ export const Select = ({
         onChange={onChange}
         disabled={disabled}
         required={required}
-        className={`w-full bg-slate-950 border ${
-          error ? 'border-red-500/60 focus:border-red-500' : 'border-slate-800 focus:border-cyan-500/50'
-        } rounded-lg px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500/20 disabled:opacity-50 transition-all duration-150 ${className}`}
+        className={`w-full bg-[var(--bg-app)] border ${
+          error ? 'border-red-500/60 focus:border-red-500' : 'border-[var(--border-subtle)] focus:border-[var(--border-focus)]'
+        } rounded-lg px-3.5 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--border-focus)] disabled:opacity-50 transition-all duration-150 ${className}`}
         {...props}
       >
         {placeholder && (
-          <option value="" disabled className="bg-slate-900 text-slate-500">
+          <option value="" disabled className="bg-[var(--bg-surface)] text-[var(--text-muted)]">
             {placeholder}
           </option>
         )}
         {options.map((opt, idx) => (
-          <option key={idx} value={typeof opt === 'object' ? opt.value : opt} className="bg-slate-900 text-slate-100">
+          <option key={idx} value={typeof opt === 'object' ? opt.value : opt} className="bg-[var(--bg-surface)] text-[var(--text-primary)]">
             {typeof opt === 'object' ? opt.label : opt}
           </option>
         ))}
       </select>
-      {error && <p className="text-xs text-red-400 font-mono mt-1">{error}</p>}
-      {!error && helperText && <p className="text-xs text-slate-500 font-mono mt-1">{helperText}</p>}
+      {error && <p className="text-xs text-red-500 dark:text-red-400 font-mono mt-1">{error}</p>}
+      {!error && helperText && <p className="text-xs text-[var(--text-muted)] font-mono mt-1">{helperText}</p>}
     </div>
   );
 };

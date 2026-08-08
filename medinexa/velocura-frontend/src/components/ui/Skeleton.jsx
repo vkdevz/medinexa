@@ -4,7 +4,7 @@ import React from 'react';
  * Enterprise Skeleton Loading Placeholder Component
  */
 export const Skeleton = ({ className = '', height = 'h-4', width = 'w-full' }) => (
-  <div className={`animate-pulse bg-slate-800/80 rounded ${height} ${width} ${className}`} />
+  <div className={`animate-pulse bg-[var(--border-default)] opacity-60 rounded ${height} ${width} ${className}`} />
 );
 
 export const TableSkeleton = ({ rows = 5, cols = 4 }) => (
