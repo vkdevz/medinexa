@@ -70,20 +70,59 @@ const AdminDashboard = () => {
     setLoading(true);
     setError('');
     try {
-      const statsRes = await api.get('/api/admin/dashboard-stats');
-      setStats(statsRes.data);
+      const [statsRes, usersRes, otpsRes, docsRes] = await Promise.allSettled([
+        api.get('/api/admin/dashboard-stats'),
+        api.get('/api/admin/users'),
+        api.get('/api/admin/otps'),
+        api.get('/api/admin/doctors/unverified')
+      ]);
 
-      const usersRes = await api.get('/api/admin/users');
-      setUsers(usersRes.data);
+      let hasError = false;
+      let errorMessage = '';
 
-      const otpsRes = await api.get('/api/admin/otps');
-      setActiveOtps(otpsRes.data);
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data);
+      } else {
+        hasError = true;
+        const err = statsRes.reason;
+        if (err.response?.status === 401) {
+          errorMessage = 'Your admin session has expired. Please log in again.';
+        } else if (err.response?.status === 403) {
+          errorMessage = 'Access denied: Admin role permissions required.';
+        }
+      }
 
-      const docsRes = await api.get('/api/admin/doctors/unverified');
-      setUnverifiedDoctors(docsRes.data);
+      if (usersRes.status === 'fulfilled') {
+        setUsers(usersRes.value.data);
+      } else {
+        hasError = true;
+      }
+
+      if (otpsRes.status === 'fulfilled') {
+        setActiveOtps(otpsRes.value.data);
+      } else {
+        hasError = true;
+      }
+
+      if (docsRes.status === 'fulfilled') {
+        setUnverifiedDoctors(docsRes.value.data);
+      } else {
+        hasError = true;
+      }
+
+      if (hasError) {
+        if (!errorMessage) {
+          errorMessage = 'Server connection issue. Backend may be waking up from sleep mode.';
+        }
+        setError(errorMessage);
+      }
     } catch (err) {
-      console.error(err);
-      setError('Failed to fetch admin dashboard statistics.');
+      console.error('Admin data fetch error:', err);
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+      } else {
+        setError('Failed to fetch admin dashboard statistics. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
