@@ -1,0 +1,80 @@
+/* ==============================================================================
+   VELOCURA ENTERPRISE HEALTHCARE DESIGN SYSTEM TOKENS
+   ============================================================================== */
+
+:root {
+  /* Surface & Background Hierarchy */
+  --bg-app: #030712;           /* slate-950 main canvas */
+  --bg-surface: #0f172a;       /* slate-900 clinical card surface */
+  --bg-elevated: #1e293b;      /* slate-800 modal/dropdown/panel surface */
+  --bg-subtle: #0f172a80;
+
+  /* Borders & Dividers */
+  --border-subtle: #1e293b;    /* slate-800 */
+  --border-default: #334155;   /* slate-700 */
+  --border-focus: #06b6d4;     /* cyan-500 */
+
+  /* Text Hierarchy */
+  --text-primary: #f8fafc;     /* slate-50 */
+  --text-secondary: #94a3b8;   /* slate-400 */
+  --text-muted: #64748b;       /* slate-500 */
+  --text-inverse: #020617;
+
+  /* Clinical Brand & Status Semantics */
+  --color-primary: #06b6d4;    /* Cyan primary action */
+  --color-primary-hover: #0891b2;
+  --color-primary-subtle: rgba(6, 182, 212, 0.1);
+
+  --color-teal: #14b8a6;       /* Teal clinical accent */
+  --color-teal-subtle: rgba(20, 184, 166, 0.1);
+
+  --color-success: #10b981;    /* Emerald success/confirmed */
+  --color-success-subtle: rgba(16, 185, 129, 0.1);
+
+  --color-warning: #f59e0b;    /* Amber pending/warning */
+  --color-warning-subtle: rgba(245, 158, 11, 0.1);
+
+  --color-danger: #ef4444;     /* Red critical/emergency/cancelled */
+  --color-danger-subtle: rgba(239, 68, 68, 0.1);
+
+  --color-purple: #a855f7;     /* Admin/specialist purple */
+  --color-purple-subtle: rgba(168, 85, 247, 0.1);
+}
+
+/* Enterprise Surface Utilities */
+.surface-card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem; /* 12px clean enterprise radius */
+}
+
+.surface-elevated {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 0.75rem;
+}
+
+/* Accessible focus ring */
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+.focus-ring:focus-visible {
+  outline-color: var(--border-focus);
+}
+
+/* Clean Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--bg-app);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
