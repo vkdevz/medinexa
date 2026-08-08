@@ -8,6 +8,7 @@ import PatientDashboard from './pages/PatientDashboard';
 import DoctorDashboard from './pages/DoctorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
+import { DesignSystemShowcase } from './pages/DesignSystemShowcase';
 import { Button } from './components/ui/Button';
 import { Input } from './components/ui/Input';
 import { Badge } from './components/ui/Badge';
@@ -245,6 +246,9 @@ function App() {
       <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Route>
+      
+      {/* INTERNAL DEV DESIGN SYSTEM SHOWCASE */}
+      <Route path="/dev/design-system" element={<DesignSystemShowcase />} />
       
       {/* 404 Route */}
       <Route path="*" element={
